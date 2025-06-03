@@ -1,0 +1,616 @@
+openapi: 3.0.3
+info:
+  title: Swagger DCA - OpenAPI 3.0
+  version: 0.1.0
+paths:
+  /api/v1/conversation/start:
+    post:
+      tags:
+        - conversation
+      summary: Start a conversation (for use by the DC)
+      description: This endpoint is used by the DC to start a conversation with the DCA. This endpoint is not exposed to the internet. It can only be accessed inside the local network the DC and DCA are both in.
+      operationId: startConversation
+      requestBody:
+        description: Start a conversation
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+               - callbackUrl
+               - dataConsumerId
+               - dataConsumerSecret
+               - applicationTitle
+               - applicationSubject
+               - evidenceRequestingPerson
+               - evidenceSubjects
+              properties:
+                callbackUrl:
+                  type: string
+                  format: url
+                dataConsumerId:
+                  type: string
+                dataConsumerSecret:
+                  type: string
+                applicationTitle:
+                  type: string
+                  example: 'Gewerbeanmeldung'
+                applicationSubject:
+                  type: string
+                  example: 'Schröder GmbH'
+                authorizedRepresentative:
+                  $ref: '#/components/schemas/ConversationStart.NaturalPerson'
+                evidenceSubjects:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ConversationStart.EvidenceSubject'
+                language:
+                  type: string
+                  example: 'de'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jwt:
+                    type: string
+                  refreshToken:
+                    type: string
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/conversation/refresh:
+    post:
+      tags:
+        - conversation
+      summary: Get a new JWT (for use by the DC and DCA frontend)
+      description: This endpoint is used by the DC and the DCA frontend get a new jwt in case the old one expired. 
+      operationId: refreshToken
+      requestBody:
+        description: Get a new JWT
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+               - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jwt:
+                    type: string
+                  refreshToken:
+                    type: string
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/conversation:
+    get:
+      tags:
+        - conversation
+      summary: Get a conversation (for use by the DCA frontend)
+      description: This endpoint is used by the DCA frontend to retrieve the data of a conversation. This endpoint must return only the information the frontend needs (Datensparsamkeit!).
+      operationId: getConversation
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  callbackUrl:
+                    type: string
+                    format: url
+                  applicationTitle:
+                    type: string
+                    example: 'Gewerbeanmeldung'
+                  applicationSubject:
+                    type: string
+                    example: 'Schröder GmbH'
+                  authorizedRepresentative:
+                    $ref: '#/components/schemas/ConversationGet.NaturalPerson'
+                    nullable: true
+                  evidenceSubjects:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConversationGet.EvidenceSubject'
+                  language:
+                    type: string
+                    example: 'de'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []  
+  /api/v1/conversation/end:
+    post:
+      tags:
+        - conversation
+      summary: Consent to the evidences of a conversation to be used in the application and mark the conversation as ended (for use by the DCA frontend)
+      description: This endpoint is used by the DCA frontend to mark the evidences of the evidence requests of a conversation as consented to to be submitted to the DC and mark the conversation as ended.
+      operationId: consentToEvidence
+      requestBody:
+        description: Appove the evidences of the evidence requests of a conversation to be used in the  application and mark the conversation as ended
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+               - evidenceRequests
+              properties:
+                consentedEvidenceRequestIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+        required: true
+      responses:
+        '204':
+          description: Successful operation
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []  
+  /api/v1/conversation/evidences:
+    get:
+      tags:
+        - conversation
+      summary: Retrieve the evidence data (for use by the DC)
+      description: This endpoint is used by the DC to get the evidence data from the DCA. This endpoint is not exposed to the internet. It can only be accessed inside the local network the DC and DCA are both in.
+      operationId: getEvidences
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  errorMessage:
+                    type: string
+                  evidenceRequests:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                       - evidenceRequestId
+                      properties:
+                        evidenceRequestId:
+                          type: string
+                          format: uuid
+                        error:
+                          type: string
+                        errorMessage:
+                          type: string
+                        evidences:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/EvidenceData'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+  /api/v1/evidence/request:
+    post:
+      tags:
+        - evidence
+      summary: Start an evidence request (for use by the DCA frontend)
+      description: This endpoint is used by the DCA frontend to initiate the request of an evidence via the NOOTS and to retrieve information about this evidence.
+      operationId: requestEvidence
+      requestBody:
+        description: Start an evidence request
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+               - evidenceRequestId
+              properties:
+                evidenceRequestId:
+                  type: string
+                  format: uuid
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  evidences:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EvidencePreview'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+  /api/v1/evidence/cancel:
+    post:
+      tags:
+        - evidence
+      summary: Cancel an evidence request (for use by the DCA frontend)
+      description: This endpoint is used by the DCA frontend to mark an evidence request as canceled .
+      operationId: cancelEvidenceRequest
+      requestBody:
+        description: Cancel an evidence request
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+               - evidenceRequestId
+               - canceled
+              properties:
+                evidenceRequestId:
+                  type: string
+                  format: uuid
+        required: true
+      responses:
+        '204':
+          description: Successful operation
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []  
+  /request:
+    post:
+      tags:
+        - DCA frontend entry point
+      summary: DCA entry point (for use by the DC)
+      description: This is the url that the DC invokes to redirect the user to the DCA after it hat started a conversation.
+      operationId: dca
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+               - jwt
+               - refreshToken
+              properties:
+                jwt:
+                  type: string
+                refreshToken:
+                  type: string
+        required: true
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        errorMessage:
+          type: string
+    ConversationStart.Address:
+      type: object
+      required:
+       - fullAddress
+       - thoroughfare
+       - locatorDesignator
+       - adminUnitLevel1
+       - postCode
+       - cityName
+      properties:
+        fullAddress:
+          type: string
+        thoroughfare:
+          type: string
+        locatorDesignator:
+          type: string
+        adminUnitLevel1:
+          type: string
+        adminUnitLevel2:
+          type: string
+        postCode:
+          type: string
+        cityName:
+          type: string
+    ConversationStart.NaturalPerson:
+      type: object
+      required:
+       - levelOfAssurance
+       - dateOfBirth
+       - familyName
+       - givenName
+       - address
+      properties:
+        IDNr:
+          type: string
+          nullable: true
+        levelOfAssurance:
+          type: string
+          enum : ['low', 'substancial', 'high']
+        placeOfBirth:
+          type: string
+        gender:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        familyName:
+          type: string
+        givenName:
+          type: string
+        address:
+          $ref: '#/components/schemas/ConversationStart.Address'
+    ConversationStart.LegalPerson:
+      type: object
+      required:
+       - levelOfAssurance
+       - legalName
+       - address
+      properties:
+        legalPersonIdentifier:
+          type: string
+          nullable: true
+        beWiNr:
+          type: string
+          nullable: true
+        identifiers:
+          type: array
+          items:
+            type: object
+            properties:
+              identifier:
+                type: string
+                nullable: true
+              identifierType:
+                type: string
+                enum : ['VAT', 'TAX', 'BusinessCode', 'LEI', 'EORI', 'SEED', 'SIC']
+                nullable: true
+        levelOfAssurance:
+          type: string
+          enum : ['low', 'substancial', 'high']
+        legalName:
+          type: string
+        address:
+          $ref: '#/components/schemas/ConversationStart.Address'
+    ConversationStart.EvidenceSubject:
+      type: object
+      properties:
+        legalPerson:
+          $ref: '#/components/schemas/ConversationStart.LegalPerson'
+        naturalPerson:
+          $ref: '#/components/schemas/ConversationStart.NaturalPerson'
+        evidenceRequests:
+          type: array
+          items:
+            type: object
+            required:
+              - evidenceRequestId
+              - evidenceType
+              - evidenceTitle
+              - mediaTypes
+            properties:
+              evidenceRequestId:
+                type: string
+                format: uuid
+              evidenceType:
+                type: string
+              evidenceTitle:
+                type: string
+                example: 'Handelsregisterauszug'
+              mediaTypes:
+                type: array
+                items:
+                  type: string
+              jurisdictionParameters:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - key
+                    - value
+                  properties:
+                    key:
+                      type: string
+                    value:
+                      type: string
+                description: This data will be used for fetching the responsible service when there are decentralized registers.
+              metadata:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - label
+                    - value
+                  properties:
+                    label:
+                      type: string
+                    value:
+                      type: string
+                description: This data is used by the frontend to display information about the evidence that is requested.
+    ConversationGet.Address:
+      type: object
+      required:
+       - postCode
+       - cityName
+      properties:
+        postCode:
+          type: string
+        cityName:
+          type: string
+    ConversationGet.NaturalPerson:
+      type: object
+      required:
+       - dateOfBirth
+       - familyName
+       - givenName
+       - address
+      properties:
+        dateOfBirth:
+          type: string
+          format: date
+        familyName:
+          type: string
+        givenName:
+          type: string
+        address:
+          $ref: '#/components/schemas/ConversationGet.Address'
+    ConversationGet.LegalPerson:
+      type: object
+      required:
+       - legalName
+       - address
+      properties:
+        beWiNr:
+          type: string
+          nullable: true
+        legalName:
+          type: string
+        address:
+          $ref: '#/components/schemas/ConversationGet.Address'
+    ConversationGet.EvidenceSubject:
+      type: object
+      properties:
+        legalPerson:
+          $ref: '#/components/schemas/ConversationGet.LegalPerson'
+        naturalPerson:
+          $ref: '#/components/schemas/ConversationGet.NaturalPerson'
+        evidenceRequests:
+          type: array
+          items:
+            type: object
+            required:
+              - evidenceRequestId
+              - evidenceType
+              - evidenceTitle
+              - mediaTypes
+              - consented
+            properties:
+              evidenceRequestId:
+                type: string
+                format: uuid
+              evidenceTitle:
+                type: string
+                example: 'Handelsregisterauszug'
+              jurisdictionParameters:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - key
+                    - value
+                  properties:
+                    key:
+                      type: string
+                    value:
+                      type: string
+              metadata:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - label
+                    - value
+                  properties:
+                    label:
+                      type: string
+                    value:
+                      type: string
+              cancelled:
+                type: boolean
+              evidences:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvidencePreview'
+              consented:
+                type: boolean
+    Evidence:
+      type: object
+      properties:
+        title:
+          type: string
+        issuingDate:
+          type: string
+          format: date-time
+        validityPeriod:
+          type: object
+          properties:
+            validityFrom:
+              type: string
+              format: date-time
+            validityTo:
+              type: string
+              format: date-time
+        mediaType:
+          type: string
+        conformsTo:
+          type: string
+        transformation:
+          type: string
+        issuingAuthority:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        language:
+          type: string
+    EvidencePreview:
+      allOf:
+        - $ref: "#/components/schemas/Evidence"
+        - type: object
+          properties:
+            preview:
+              type: string
+    EvidenceData:
+      allOf:
+        - $ref: "#/components/schemas/Evidence"
+        - type: object
+          properties:
+            data:
+              type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
