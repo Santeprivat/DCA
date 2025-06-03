@@ -1,0 +1,121 @@
+@startuml
+title Gewerbeanmeldung und Abruf des Handelsregisterauszugs (UC_02_2025 NOOTS MVP 1)
+
+autonumber
+skinparam ArrowFontSize 20
+skinparam ParticipantFontSize 20
+skinparam TitleFontSize 26
+ 
+box "Internet" #LightBlue
+participant "Antragssteller (Web-Browser)" as WEB
+end box
+
+box "Bereich des Data Consumer" #Gold
+participant "WSP-Antragsplattform" as WSPNRW
+participant "DCA-Frontend" as DCAFE
+participant "DCA-Backend" as DCABE
+participant "SAK-DC" as SAKDC
+end box
+
+box "IAM für Behörden" #LightBlue
+participant IAM as IAM 
+end box
+
+box "Registerdatennavigation" #LightBlue
+participant RDN as RDN
+end box
+
+box "IDM für Personen" #LightBlue
+participant IDM as IDM 
+end box
+
+box "Bereich des Data Provider" #Gold
+participant "SAK-DP" as SAKDP
+end box
+
+WEB->WSPNRW: Antrag \nGewerbeanmeldung \nauswählen
+WSPNRW->WSPNRW: Weiterleitung zu Mein Unternehmenskonto \nund Anmeldung am Unternehmenskonto \nhier nicht mehr dargestellt.
+WSPNRW->WEB: Anmeldung am \nUnternehmenskonto \nerfolgt \n(zurück zum WSP) 
+WEB->WSPNRW: Antrag \nGewerbeanmeldung \ninitialisieren
+
+WSPNRW->DCABE: Conversation für die Nachweisanfrage starten \n(Redirect-URL zum Antragsformular, \nIdentitätsdaten, \n Liste(Nachweissubjekt, Nachweistyp, \nZuständigkeitswert, DatenformatListe))\nPOST/api/v1/conversation/start
+DCABE->DCABE: Authentifizierung des WSPNRW \nund Erzeugung einer UUID und \neines JSON Web Token (JWT) \nals Conversation-ID
+DCABE->SAKDC: getZugriffstoken \n (Komponenten-ID, Zertifikat)  
+SAKDC->IAM: getZugriffstoken \n (Komponenten-ID, Zertifikat)
+IAM-->SAKDC: getZugriffstoken Response \n (NOOTS OAuth Access Token)
+SAKDC->DCABE: getZugriffstoken Response
+DCABE->DCABE: Speichern der Konversationsdaten zur \nConversation-ID 
+DCABE->WSPNRW: Conversation-ID \nan Data Consumer geben
+WSPNRW->WEB: Redirect-URL zum DCA \n(Auswahl der Nachweistypen) \nund Conversation-ID \nan Browser zurück geben
+WEB->DCAFE: Auswählbare Nachweistypen laden \nPOST/request
+DCAFE->DCABE: Daten der Conversation laden\nGET/api/v1/conversation
+
+DCABE->DCAFE: Daten der Conversation Response
+DCAFE->WEB: Auswählbare Nachweistypen laden Response
+WEB->DCAFE: Nachweistypen auswählen und \n Zustimmung zum Nachweisabruf erteilen
+DCAFE->DCABE: Nachweise anfragen\nPOST/API/v1/evidence/request 
+
+alt Falls Abruf der Id.Nr. zur Person erforderlich ist
+
+DCABE->SAKDC: getIdNr(Zugriffstoken, Basisdaten der Person) 
+SAKDC->IDM: getIdNr 
+IDM->SAKDC: getIndNr Response
+SAKDC->DCABE: getIdNr Response
+
+end
+
+group loop (Angefragte Nachweise)
+
+DCABE->SAKDC: getNachweisangebot \n (Zugriffstoken, Nachweistyp, Zuständigkeitswert) 
+SAKDC->RDN: getNachweisangebot 
+RDN->SAKDC: getNachweisangebot Response
+SAKDC->DCABE: getNachweisangebot Response 
+
+DCABE->DCABE: Nachweisangebot automatisch auswählen
+DCABE->DCABE: Vertrauensniveau vergleichen und prüfen 
+
+DCABE->SAKDC: getNachweis(Zugriffstoken, ServiceID, XNachweis) 
+SAKDC->SAKDC: verschiedene Requests gegen \n NOOTS-Komponenten \n (gegen VS, RDN)
+SAKDC->SAKDP: getNachweis
+SAKDP->SAKDC: getNachweis Response  
+SAKDC->DCABE: getNachweis Response 
+
+DCABE->DCABE: Speichern des Nachweises (zum JWT)  
+
+alt Falls Preview für Nachweis angefordert ist
+
+DCABE->DCABE: Darstellungsinformation für Nachweis ermitteln
+DCABE->DCABE: Nachweis für Preview aufbereiten
+
+end 
+
+end
+
+DCABE->DCAFE: Nachweise Anfragen \nResponse   
+DCAFE->WEB: Redirect-URL zum Previewbereich des DCA \n und Conversation-ID an Browser zurück geben
+WEB->DCAFE: Menschenlesbar aufbereitete Nachweise laden (Previewbereich) 
+
+group loop (In der Vorschau anzuzeigende Nachweise)
+
+DCAFE->WEB: Nachweis in Preview anzeigen und Nutzerentscheidung \nüber die Verwendung des Nachweises im Antragsverfahren \nermöglichen
+
+end
+
+WEB->DCAFE: Nutzerentscheidung abschliessen
+DCAFE->DCAFE: Nutzerentscheidung übernehmen
+
+DCAFE->DCABE: Conversation speichern
+DCABE->DCAFE: Conversation speichern Response
+
+DCAFE->WSPNRW: Übermittlung der Nutzerentscheidung \nüber die Verwendung der Nachweise \n(Conversation-ID)
+WSPNRW->DCABE: Nachweise anfordern (Conversation-ID)\nGET/api/v1/conversation/evidences
+DCABE->WSPNRW: Nachweise \n(jeweils XNachweis mit \nenthaltenem Fachdatensatz)
+WSPNRW->DCAFE: Übermittlung der Nutzerentscheidung \nResponse  
+
+DCAFE->DCABE: Redirect-URL zum Antragsformular \naus Conversation laden
+DCABE->DCAFE: Response mit Redirect-URL \nzum Antragsformular 
+
+DCAFE->WEB: Redirect-URL zum \n Antragsformular Gewerbeanmeldung \n und Conversation-ID
+WEB->WSPNRW: Ausgefülltes Antragsformular \nGewerbeanmeldung laden \nmit Conversation-ID 
+
+@enduml
