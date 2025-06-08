@@ -7,83 +7,58 @@ paths:
     post:
       tags:
         - conversation
-      summary: Start a conversation (for use by the DC)
-      description: This endpoint is used by the DC to start a conversation with the DCA. This endpoint is not exposed to the internet. It can only be accessed inside the local network the DC and DCA are both in.
+      summary: Initiierung eines Nachweisabrufs eine oder mehrere Nachweise durch einen Data Consumer (DC).
+      description: >
+      Dieser endpoint wird verwendet für den Data Consumer (DC) bei 
+      einem Nachweisabruf mit Hilfe des lokal in der Nähe des Data Consumer installierten 
+      Data Consumer Adapters. Es wird die Backendkomponente des DC angesprochen. Die Komponente ist somit vom unsicheren Internet geschützt.
       operationId: startConversation
       requestBody:
-        description: Start a conversation
+        description: > 
+        Initiierung eines Nachweisabrufs einer oder mehrere Nachweise durch einen Data Consumer (DC). Die redirectUrl wird verwendet,
+        damit im Rahmen eines redirects über den Browswer des Antragsstellenden der Data Consumer Adapter angesprochen werden kann. Als Antwort erhält der
+        Data Consumer ein ConversationID auf deren Grundlage er zu einem späteren Zeitpunkt die Nachweise abrufen kann. 
         content:
           application/json:
             schema:
               type: object
               required:
-               - callbackUrl
-               - dataConsumerId
-               - dataConsumerSecret
-               - applicationTitle
-               - applicationSubject
-               - evidenceRequestingPerson
-               - evidenceSubjects
+                - componentId
+                - levelOfAssuranceList
+                - language
+                - redirectUrl
+                - requestedEvidencesList
               properties:
-                callbackUrl:
+                componentId:
                   type: string
-                  format: url
-                dataConsumerId:
-                  type: string
-                dataConsumerSecret:
-                  type: string
-                applicationTitle:
-                  type: string
-                  example: 'Gewerbeanmeldung'
-                applicationSubject:
-                  type: string
-                  example: 'Schröder GmbH'
-                authorizedRepresentative:
-                  $ref: '#/components/schemas/ConversationStart.NaturalPerson'
-                evidenceSubjects:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/ConversationStart.EvidenceSubject'
+                  format: UUID
+                  description: >
+                    Mittels componentID kann der DCA anschließend eine Abfrage an IAM für Behörden (IAMfB) stellen
+                    und dabei sowohl die fachverantwortliche Stelle als auch die betriebsverwantwortliche Stelle des Data Consumers ermitteln.
+                levelOfAssuranceList:
+                  type: array
+                  minItems: 1
+                  maxItems: 2
+                  items:
+                    $ref: '#/components/schemas/ConversationStart.LevelOfAssurance'
+                  description: >
+                  Es dürfen maximal zwei Einträge enthalten sein – jeweils ein Eintrag für natürliche und juristische Personen.
+                  example:
+                  - subjectType: naturalPerson
+                    assuranceLevel: High
+                  - subjectType: legalPerson
+                    assuranceLevel: Substantial
                 language:
                   type: string
                   example: 'de'
-        required: true
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  jwt:
-                    type: string
-                  refreshToken:
-                    type: string
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /api/v1/conversation/refresh:
-    post:
-      tags:
-        - conversation
-      summary: Get a new JWT (for use by the DC and DCA frontend)
-      description: This endpoint is used by the DC and the DCA frontend get a new jwt in case the old one expired. 
-      operationId: refreshToken
-      requestBody:
-        description: Get a new JWT
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-               - refreshToken
-              properties:
-                refreshToken:
+                 redirectUrl:
                   type: string
+                  format: url
+                requestedEvidencesList:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ConversationStart.RequestedEvidence'
+
         required: true
       responses:
         '200':
@@ -92,11 +67,6 @@ paths:
             application/json:
               schema:
                 type: object
-                properties:
-                  jwt:
-                    type: string
-                  refreshToken:
-                    type: string
         default:
           description: Error
           content:
@@ -328,6 +298,36 @@ components:
           type: string
         errorMessage:
           type: string
+    ConversationStart.LevelofAssurance
+      type: object
+      properties:
+        subjectType:
+          type: string
+          enum: [naturalPerson, legalPerson]
+          description: Gibt an, ob sich das Vertrauensniveau auf eine natürliche oder juristische Person bezieht.
+        assuranceLevel:
+          type: string
+          enum: [Low, Substantial, High]
+          description: Das Vertrauensniveau gemäß eIDAS oder ähnlichen Standards.
+      required:
+        - subjectType
+        - assuranceLevel
+    ConversationStart.RequestedEvidence
+      type: object
+      properties:
+        evidenceType:
+        
+        rechtsgrundlage:
+          type: string
+          description: Rechtsgrundlage für den Nachweisabruf
+          example: "§ 9 Handelsgesetzbuch (HGB)"
+        verarbeitungszweck:
+          type: string
+          description: >
+          Hier wird der Verarbeitungszweck gemäß noch zu veröffentlichender Code-Liste eingetragen. 
+          Für "Onlinedienst (interaktiver) Nachweisabruf ist das "1"
+          example: 1
+        xx
     ConversationStart.Address:
       type: object
       required:
