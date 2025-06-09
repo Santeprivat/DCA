@@ -1,6 +1,6 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Swagger DCA - OpenAPI 3.0
+  title: Data Consumer Adapter
   version: 0.1.0
 paths:
   /api/v1/conversation/start:
@@ -35,19 +35,14 @@ paths:
                   description: >
                     Mittels componentID kann der DCA anschließend eine Abfrage an IAM für Behörden (IAMfB) stellen
                     und dabei sowohl die fachverantwortliche Stelle als auch die betriebsverwantwortliche Stelle des Data Consumers ermitteln.
-                levelOfAssuranceList:
+                identifierPersonList:
                   type: array
                   minItems: 1
                   maxItems: 2
                   items:
-                    $ref: '#/components/schemas/ConversationStart.LevelOfAssurance'
+                    $ref: '#/components/schemas/identifierPerson'
                   description: >
                   Es dürfen maximal zwei Einträge enthalten sein – jeweils ein Eintrag für natürliche und juristische Personen.
-                  example:
-                  - subjectType: naturalPerson
-                    assuranceLevel: High
-                  - subjectType: legalPerson
-                    assuranceLevel: Substantial
                 language:
                   type: string
                   example: 'de'
@@ -298,8 +293,11 @@ components:
           type: string
         errorMessage:
           type: string
-    ConversationStart.LevelofAssurance
+    IdentifierPerson:
       type: object
+      required:
+        - subjectType
+        - assuranceLevel
       properties:
         subjectType:
           type: string
@@ -308,94 +306,180 @@ components:
         assuranceLevel:
           type: string
           enum: [Low, Substantial, High]
-          description: Das Vertrauensniveau gemäß eIDAS oder ähnlichen Standards.
-      required:
-        - subjectType
-        - assuranceLevel
-    ConversationStart.RequestedEvidence
+          description: Das Vertrauensniveau gemäß eIDAS oder ähnlichen Standards.      
+    ConversationStart.RequestedEvidence:
       type: object
+      required:
+        - requestedEvidenceIdentifier
+        - requestedEvidenceOrigin
+        - requestedEvidenceTypeDistributionList
       properties:
-        evidenceType:
-        
+        requestedEvidenceIdentifier:
+          type: string
+          format: UUID
+          description: Identifikator des Nachweistyps. Dieser kann für nationale Nachweisabrufe im Nachweiskatalog gefunden werden.
+          example: "9151f21f-43ae-43b4-92f3-f4af67cdf544"
+        requestedEvidenceOrigin:
+          type: string
+          enum:          
+            - DE  # Deutschland
+            - EU  # EU-Mitgliedstaat, hier nicht Deutschland
+            - AT  # Österreich
+            - BE  # Belgien
+            - BG  # Bulgarien
+            - HR  # Kroatien
+            - CY  # Zypern
+            - CZ  # Tschechien
+            - DK  # Dänemark
+            - EE  # Estland
+            - FI  # Finnland
+            - FR  # Frankreich
+            - GR  # Griechenland
+            - HU  # Ungarn
+            - IE  # Irland
+            - IT  # Italien
+            - LV  # Lettland
+            - LT  # Litauen
+            - LU  # Luxemburg
+            - MT  # Malta
+            - NL  # Niederlande
+            - PL  # Polen
+            - PT  # Portugal
+            - RO  # Rumänien
+            - SK  # Slowakei
+            - SI  # Slowenien
+            - ES  # Spanien
+            - SE  # Schweden
+          description: >
+            Herkunft des nachgefragten Nachweistyps entsprechend ISO 3166-1 Alpha-2 Code in codeliste "urn:xoev-de:kosit:codeliste:country-codes".
+            Nur Länder der Europäischen Union dürfen eingetragen werden. Wenn der Data Consumer Adpater oder die Intermediäre Plattform im Dialog mit
+            dem Antragsstellenden nachträglich die Herkunft ermitteln soll und die Herkunft nicht Deutschland ist, wird der Wert "EU" eingetragen.
+        identifierPerson:
+          type: object
+          required:
+          - person
+          properties:
+            person:
+              oneOf:
+                - $ref: '#/components/schemas/naturalPerson'
+                - $ref: '#/components/schemas/legalPerson'
+              discriminator:
+                propertyName: type
+                mapping:
+                  naturalPerson: '#/components/schemas/naturalPerson'
+                  legalPerson: '#/components/schemas/legalPerson'
+          description: Entweder eine natürliche oder eine juristische Person – genau eine muss angegeben werden.   
+        requestedEvidenceTypeDistributionList:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ConversationStart.RequestedEvidence.RequestedEvidenceTypeDistribution'
         rechtsgrundlage:
           type: string
-          description: Rechtsgrundlage für den Nachweisabruf
+          description: Hier wird für nationale Abrufe die Rechtsgrundlage für den Nachweisabruf beschrieben
           example: "§ 9 Handelsgesetzbuch (HGB)"
         verarbeitungszweck:
           type: string
           description: >
-          Hier wird der Verarbeitungszweck gemäß noch zu veröffentlichender Code-Liste eingetragen. 
-          Für "Onlinedienst (interaktiver) Nachweisabruf ist das "1"
+            Hier wird für nationale Abrufe der Verarbeitungszweck gemäß noch zu veröffentlichender Code-Liste eingetragen. 
+            Für "Onlinedienst (interaktiver) Nachweisabruf ist das "1"
           example: 1
-        xx
-    ConversationStart.Address:
-      type: object
-      required:
-       - fullAddress
-       - thoroughfare
-       - locatorDesignator
-       - adminUnitLevel1
-       - postCode
-       - cityName
-      properties:
-        fullAddress:
-          type: string
-        thoroughfare:
-          type: string
-        locatorDesignator:
-          type: string
-        adminUnitLevel1:
-          type: string
-        adminUnitLevel2:
-          type: string
-        postCode:
-          type: string
-        cityName:
-          type: string
-    ConversationStart.NaturalPerson:
-      type: object
-      required:
-       - levelOfAssurance
-       - dateOfBirth
-       - familyName
-       - givenName
-       - address
-      properties:
-        IDNr:
-          type: string
-          nullable: true
-        levelOfAssurance:
-          type: string
-          enum : ['low', 'substancial', 'high']
-        placeOfBirth:
-          type: string
-        gender:
-          type: string
-        dateOfBirth:
-          type: string
-          format: date
-        familyName:
-          type: string
-        givenName:
-          type: string
-        address:
-          $ref: '#/components/schemas/ConversationStart.Address'
-    ConversationStart.LegalPerson:
-      type: object
-      required:
-       - levelOfAssurance
-       - legalName
-       - address
-      properties:
-        legalPersonIdentifier:
-          type: string
-          nullable: true
-        beWiNr:
-          type: string
-          nullable: true
-        identifiers:
-          type: array
-          items:
+        jurisdictionParameter:
+          type: object
+          required:
+            - zuständigkeitswert
+            - zuständigkeitsbestimmung
+          properties:
+            zuständigkeitswert:
+              type: string
+              example: "110009000000"
+              description: Angabe des Zuständigkeitswerts zur Ermittlung des zuständigen Registers. Im Beispiel: Wert des amtlichen Regionalschlüssels des Stadtbezirks Steglitz-Zehlendorf
+            zuständigkeitsbestimmung:
+              type: string
+              example: "ars"
+              description: > 
+              Angabe der (Code Liste) zur Ermittlung des zuständigen Registers. Im Beispiel unten erfolgt die Zuständigkeitsbestimmung 
+              nach dem Amtlichen Regionalschlüssel.
+      ConversionStart.RequestedEvidence.RequestedEvidenceTypDistribution
+        type: object
+        required:
+          - ootsMediaTyp
+        properties:
+          ootsMediaTyp:  
+            type: string
+            enum:
+              - image/jpeg
+              - image/jpg
+              - application/json
+              - image/png
+              - application/pdf
+              - application/xml
+              - image/svg+xml
+            example: "application/xml" 
+          priority:
+            typ: integer
+            minimum: 1
+            description: Eindeutige Priorität des Nachweisformats als positive ganze Zahl.
+          evidenceSchema:
+            type: string
+            format: uri
+            description: >
+              Verweis auf ein Schema in einer definierten Version. Bei Nachweisanfragen aus dem EU-Ausland muss der
+              Wert dem Muster 'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
+              example: "https://www.xrepository.de/api/xrepository/urn:xoev-de:blk-ag-it-standards:standard:xjustiz_3.6.2:xmlschema"
+          transformationSchema:
+            type: string
+            format: uri
+            description: > 
+              Verweis auf ein Schema, dass ein Subset der geforderten Daten definiert. Bei Nachweisanfragen aus dem EU-Ausland muss der
+              Wert dem Muster 'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
+              
+      NaturalPerson:
+        type: object
+        required:
+          - dateOfBirth
+          - familyName
+          - givenName
+          - levelOfAssurance
+        properties:
+          dateOfBirth:
+            type: string
+            format: date
+          familyName:
+            type: string
+          givenName:
+            type: string
+          levelOfAssurance:
+            type: string
+            enum : ['Low', 'Substantial', 'High']
+          placeOfBirth:
+            type: string
+          currentAddress:
+            $ref: '#/components/schemas/Address'
+          sectorSpecificAttributeList:
+            type: array
+            items:
+              $ref: '#/components/schemas/SectorSpecificAttribute'
+          nationality:
+            type: string
+          townOfBirth:
+            type: string
+      LegalPerson:
+        type: object
+        required:
+          - levelOfAssurance
+          - legalName
+          - address
+        properties:
+          legalPersonIdentifier:
+            type: string
+            nullable: true
+          beWiNr:
+            type: string
+            nullable: true
+          identifiers:
+            type: array
+            items:
             type: object
             properties:
               identifier:
@@ -405,13 +489,28 @@ components:
                 type: string
                 enum : ['VAT', 'TAX', 'BusinessCode', 'LEI', 'EORI', 'SEED', 'SIC']
                 nullable: true
-        levelOfAssurance:
-          type: string
-          enum : ['low', 'substancial', 'high']
-        legalName:
-          type: string
-        address:
-          $ref: '#/components/schemas/ConversationStart.Address'
+          levelOfAssurance:
+            type: string
+            enum : ['low', 'substancial', 'high']
+          legalName:
+            type: string
+          address:
+            $ref: '#/components/schemas/ConversationStart.Address'
+    SectorSpecificAttribute:
+      type: object
+      required:
+        - attributeName
+        - attributeURI
+        - attributeValue
+      properties:
+        attributeName:
+          type: string
+        attributeURI:
+          type: string
+          format: uri
+        attributeValue:
+          type: string
+      
     ConversationStart.EvidenceSubject:
       type: object
       properties:
