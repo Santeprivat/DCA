@@ -9,22 +9,21 @@ paths:
         - conversation
       summary: Initiierung eines Nachweisabrufs eine oder mehrere Nachweise durch einen Data Consumer (DC).
       description: >
-      Dieser endpoint wird verwendet für den Data Consumer (DC) bei 
-      einem Nachweisabruf mit Hilfe des lokal in der Nähe des Data Consumer installierten 
+      Dieser endpoint wird verwendet für den Data Consumer (DC) bei einem Nachweisabruf mit Hilfe des lokal in der Nähe des Data Consumer installierten 
       Data Consumer Adapters. Es wird die Backendkomponente des DC angesprochen. Die Komponente ist somit vom unsicheren Internet geschützt.
       operationId: startConversation
       requestBody:
-        description: > 
+        description: >
         Initiierung eines Nachweisabrufs einer oder mehrere Nachweise durch einen Data Consumer (DC). Die redirectUrl wird verwendet,
         damit im Rahmen eines redirects über den Browswer des Antragsstellenden der Data Consumer Adapter angesprochen werden kann. Als Antwort erhält der
-        Data Consumer ein ConversationID auf deren Grundlage er zu einem späteren Zeitpunkt die Nachweise abrufen kann. 
+        Data Consumer ein ConversationID auf deren Grundlage er zu einem späteren Zeitpunkt die Nachweise abrufen kann.
         content:
           application/json:
             schema:
               type: object
               required:
                 - componentId
-                - levelOfAssuranceList
+                - identifierPersonList
                 - language
                 - redirectUrl
                 - requestedEvidencesList
@@ -42,19 +41,17 @@ paths:
                   items:
                     $ref: '#/components/schemas/identifierPerson'
                   description: >
-                  Es dürfen maximal zwei Einträge enthalten sein – jeweils ein Eintrag für natürliche und juristische Personen.
+                    Es dürfen maximal zwei Einträge enthalten sein – jeweils ein Eintrag für natürliche und juristische Personen.
                 language:
                   type: string
                   example: 'de'
-                 redirectUrl:
+                redirectUrl:
                   type: string
                   format: url
                 requestedEvidencesList:
                   type: array
                   items:
                     $ref: '#/components/schemas/ConversationStart.RequestedEvidence'
-
-        required: true
       responses:
         '200':
           description: Successful operation
@@ -292,21 +289,7 @@ components:
         error:
           type: string
         errorMessage:
-          type: string
-    IdentifierPerson:
-      type: object
-      required:
-        - subjectType
-        - assuranceLevel
-      properties:
-        subjectType:
-          type: string
-          enum: [naturalPerson, legalPerson]
-          description: Gibt an, ob sich das Vertrauensniveau auf eine natürliche oder juristische Person bezieht.
-        assuranceLevel:
-          type: string
-          enum: [Low, Substantial, High]
-          description: Das Vertrauensniveau gemäß eIDAS oder ähnlichen Standards.      
+          type: string      
     ConversationStart.RequestedEvidence:
       type: object
       required:
@@ -366,8 +349,8 @@ components:
               discriminator:
                 propertyName: type
                 mapping:
-                  naturalPerson: '#/components/schemas/naturalPerson'
-                  legalPerson: '#/components/schemas/legalPerson'
+                  naturalPerson: '#/components/schemas/NaturalPerson'
+                  legalPerson: '#/components/schemas/LegalPerson'
           description: Entweder eine natürliche oder eine juristische Person – genau eine muss angegeben werden.   
         requestedEvidenceTypeDistributionList:
           type: array
@@ -433,7 +416,6 @@ components:
             description: > 
               Verweis auf ein Schema, dass ein Subset der geforderten Daten definiert. Bei Nachweisanfragen aus dem EU-Ausland muss der
               Wert dem Muster 'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
-              
       NaturalPerson:
         type: object
         required:
@@ -450,8 +432,7 @@ components:
           givenName:
             type: string
           levelOfAssurance:
-            type: string
-            enum : ['Low', 'Substantial', 'High']
+            $ref: '#/components/schemas/LevelOfAssurance'
           placeOfBirth:
             type: string
           currentAddress:
@@ -467,35 +448,56 @@ components:
       LegalPerson:
         type: object
         required:
-          - levelOfAssurance
           - legalName
+          - levelOfAssurance
           - address
         properties:
-          legalPersonIdentifier:
-            type: string
-            nullable: true
-          beWiNr:
-            type: string
-            nullable: true
-          identifiers:
-            type: array
-            items:
-            type: object
-            properties:
-              identifier:
-                type: string
-                nullable: true
-              identifierType:
-                type: string
-                enum : ['VAT', 'TAX', 'BusinessCode', 'LEI', 'EORI', 'SEED', 'SIC']
-                nullable: true
-          levelOfAssurance:
-            type: string
-            enum : ['low', 'substancial', 'high']
           legalName:
             type: string
-          address:
-            $ref: '#/components/schemas/ConversationStart.Address'
+          levelOfAssurance:
+            $ref: '#/components/schemas/LevelOfAssurance'       
+          registeredAddress:
+            $ref: '#/components/schemas/Address'  
+          legalPersonEIDASIdentifier:
+            type: string
+            description: eIDAS-konformer Identifier
+            example: "ES/AT/02635542Y"
+          legalPersonIdentifier:
+            type: string
+            description: Hier erfolgt die Angabe des EUID entsprechend Durchführungsverordnung (EU) 2020/2244 der Kommission vom 17. Dezember 2020
+            example: "DE.HRB.123456"
+          sectorSpecificAttributeList:
+            type: array
+            items:
+              $ref: '#/components/schemas/SectorSpecificAttribute'  
+    Address:
+      type: object
+      required:
+       - fullAddress
+       - thoroughfare
+       - locatorDesignator
+       - country
+       - postCode
+       - postCityName
+      properties:
+        fullAddress:
+          type: string
+          description: Die vollständige Adresse (Strasse, Postleitzahl, Stadt/Gemeinde, Land)
+        thoroughfare:
+          type: string
+          description: Die Straße ohne Nummer
+        locatorDesignator
+          type: string
+          description: Die Nummerangabe als Ergänzung zur Straßenangabe
+        country:
+          type: string
+          description: Das Land entsprechend ISO 3166-1 Alpha-2 Code in codeliste "urn:xoev-de:kosit:codeliste:country-codes"
+        postCode:
+          type: string
+          description: Postleitzahl
+        postCityName:
+          type: string
+          description: Stadt oder Gemeinde
     SectorSpecificAttribute:
       type: object
       required:
@@ -510,7 +512,15 @@ components:
           format: uri
         attributeValue:
           type: string
-      
+    AssuranceLevel:
+      type: string
+      enum:
+        - Low
+        - Substantial 
+        - High
+      description: Das Vertrauensniveau gemäß eIDAS oder ähnlichen Standards.  
+
+   
     ConversationStart.EvidenceSubject:
       type: object
       properties:
@@ -566,16 +576,6 @@ components:
                     value:
                       type: string
                 description: This data is used by the frontend to display information about the evidence that is requested.
-    ConversationGet.Address:
-      type: object
-      required:
-       - postCode
-       - cityName
-      properties:
-        postCode:
-          type: string
-        cityName:
-          type: string
     ConversationGet.NaturalPerson:
       type: object
       required:
