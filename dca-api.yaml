@@ -7,7 +7,7 @@ paths:
     post:
       tags:
         - conversation
-      summary: Initiierung eines Nachweisabrufs eine oder mehrere Nachweise durch einen Data Consumer (DC).
+      summary: Initiierung eines Nachweisabrufs einen oder mehrere Nachweise durch einen Data Consumer (DC).
       description: >
       Dieser endpoint wird verwendet für den Data Consumer (DC) bei einem Nachweisabruf mit Hilfe des lokal in der Nähe des Data Consumer installierten 
       Data Consumer Adapters. Es wird die Backendkomponente des DC angesprochen. Die Komponente ist somit vom unsicheren Internet geschützt.
@@ -39,11 +39,12 @@ paths:
                   minItems: 1
                   maxItems: 2
                   items:
-                    $ref: '#/components/schemas/identifierPerson'
+                    $ref: '#/components/schemas/IdentifierPerson'
                   description: >
                     Es dürfen maximal zwei Einträge enthalten sein – jeweils ein Eintrag für natürliche und juristische Personen.
                 language:
                   type: string
+                  description: Präferierte Sprache der zu liefernden Nachweisen
                   example: 'de'
                 redirectUrl:
                   type: string
@@ -59,6 +60,12 @@ paths:
             application/json:
               schema:
                 type: object
+              properties:
+                conversationId:
+                  type: string
+                  format: uuid
+                  description: Eindeutige ID der gestarteten Konversation. Die ID wird später verwendet, um die mit dieser Methode eingereichten Informationen bei späteren Nachweisabrufen abzuholen.
+                  example: "123e4567-e89b-12d3-a456-426614174000"
         default:
           description: Error
           content:
@@ -336,22 +343,7 @@ components:
           description: >
             Herkunft des nachgefragten Nachweistyps entsprechend ISO 3166-1 Alpha-2 Code in codeliste "urn:xoev-de:kosit:codeliste:country-codes".
             Nur Länder der Europäischen Union dürfen eingetragen werden. Wenn der Data Consumer Adpater oder die Intermediäre Plattform im Dialog mit
-            dem Antragsstellenden nachträglich die Herkunft ermitteln soll und die Herkunft nicht Deutschland ist, wird der Wert "EU" eingetragen.
-        identifierPerson:
-          type: object
-          required:
-          - person
-          properties:
-            person:
-              oneOf:
-                - $ref: '#/components/schemas/naturalPerson'
-                - $ref: '#/components/schemas/legalPerson'
-              discriminator:
-                propertyName: type
-                mapping:
-                  naturalPerson: '#/components/schemas/NaturalPerson'
-                  legalPerson: '#/components/schemas/LegalPerson'
-          description: Entweder eine natürliche oder eine juristische Person – genau eine muss angegeben werden.   
+            dem Antragsstellenden nachträglich die Herkunft ermitteln soll und die Herkunft nicht Deutschland ist, wird der Wert "EU" eingetragen.  
         requestedEvidenceTypeDistributionList:
           type: array
           minItems: 1
@@ -388,7 +380,7 @@ components:
         required:
           - ootsMediaTyp
         properties:
-          ootsMediaTyp:  
+          ootsMediaType:  
             type: string
             enum:
               - image/jpeg
@@ -400,7 +392,7 @@ components:
               - image/svg+xml
             example: "application/xml" 
           priority:
-            typ: integer
+            type: integer
             minimum: 1
             description: Eindeutige Priorität des Nachweisformats als positive ganze Zahl.
           evidenceSchema:
@@ -416,6 +408,22 @@ components:
             description: > 
               Verweis auf ein Schema, dass ein Subset der geforderten Daten definiert. Bei Nachweisanfragen aus dem EU-Ausland muss der
               Wert dem Muster 'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
+
+      IdentifierPerson:
+        type: object
+        required:
+          - person
+        properties:
+          person:
+            oneOf:
+              - $ref: '#/components/schemas/NaturalPerson'
+              - $ref: '#/components/schemas/LegalPerson'
+            discriminator:
+              propertyName: type
+              mapping:
+                naturalPerson: '#/components/schemas/NaturalPerson'
+                legalPerson: '#/components/schemas/LegalPerson'
+              description: Entweder eine natürliche oder eine juristische Person – genau eine muss angegeben werden. 
       NaturalPerson:
         type: object
         required:
