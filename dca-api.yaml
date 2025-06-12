@@ -1,190 +1,60 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: Swagger DCA - OpenAPI 3.0
+  title: Data Consumer Adapter
   version: 0.1.0
 paths:
-  /api/v1/conversation/start:
+  /api/v1/conversations:
     post:
       tags:
-        - conversation
-      summary: Start a conversation (for use by the DC)
-      description: This endpoint is used by the DC to start a conversation with the DCA. This endpoint is not exposed to the internet. It can only be accessed inside the local network the DC and DCA are both in.
+        - conversations
+      summary: >
+        Initiierung eines Nachweisabrufs einen oder mehrere Nachweise durch einen Data Consumer (DC). Anlage einer "conversation" mit Information über
+        alle abzurufende Nachweise und Information über den Antragsstellenden (Bürger und Unternehmen).
+      description: >
+        Dieser endpoint wird verwendet für den Data Consumer (DC) bei einem Nachweisabruf mit Hilfe des lokal in der Nähe des Data Consumer installierten
+        Data Consumer Adapters. Es wird die Backendkomponente des DC angesprochen. Die Komponente ist somit vom unsicheren Internet geschützt.
       operationId: startConversation
       requestBody:
-        description: Start a conversation
+        description: >
+          Initiierung eines Nachweisabrufs einer oder mehrere Nachweise durch einen Data Consumer (DC). Die redirectUrl wird verwendet,
+          damit im Rahmen eines redirects über den Browswer des Antragsstellenden der Data Consumer Adapter angesprochen werden kann. Als Antwort erhält der
+          Data Consumer ein ConversationID auf deren Grundlage er zu einem späteren Zeitpunkt die Nachweise abrufen kann.
         content:
           application/json:
             schema:
               type: object
               required:
-               - callbackUrl
-               - dataConsumerId
-               - dataConsumerSecret
-               - applicationTitle
-               - applicationSubject
-               - evidenceRequestingPerson
-               - evidenceSubjects
+                - componentId
+                - identifierPersonList
+                - language
+                - redirectUrl
+                - requestedEvidencesList
               properties:
-                callbackUrl:
+                componentId:
                   type: string
-                  format: url
-                dataConsumerId:
-                  type: string
-                dataConsumerSecret:
-                  type: string
-                applicationTitle:
-                  type: string
-                  example: 'Gewerbeanmeldung'
-                applicationSubject:
-                  type: string
-                  example: 'Schröder GmbH'
-                authorizedRepresentative:
-                  $ref: '#/components/schemas/ConversationStart.NaturalPerson'
-                evidenceSubjects:
+                  format: UUID
+                  description: >
+                    Mittels componentID kann der DCA anschließend eine Abfrage an IAM für Behörden (IAMfB) stellen
+                    und dabei sowohl die fachverantwortliche Stelle als auch die betriebsverwantwortliche Stelle des Data Consumers ermitteln.
+                identifierPersonList:
                   type: array
+                  minItems: 1
+                  maxItems: 2
                   items:
-                    $ref: '#/components/schemas/ConversationStart.EvidenceSubject'
+                    $ref: '#/components/schemas/IdentifierPerson'
+                  description: >
+                    Es dürfen maximal zwei Einträge enthalten sein – jeweils ein Eintrag für natürliche und juristische Personen.
                 language:
                   type: string
+                  description: Präferierte Sprache der zu liefernden Nachweisen
                   example: 'de'
-        required: true
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  jwt:
-                    type: string
-                  refreshToken:
-                    type: string
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /api/v1/conversation/refresh:
-    post:
-      tags:
-        - conversation
-      summary: Get a new JWT (for use by the DC and DCA frontend)
-      description: This endpoint is used by the DC and the DCA frontend get a new jwt in case the old one expired. 
-      operationId: refreshToken
-      requestBody:
-        description: Get a new JWT
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-               - refreshToken
-              properties:
-                refreshToken:
+                redirectUrl:
                   type: string
-        required: true
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  jwt:
-                    type: string
-                  refreshToken:
-                    type: string
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /api/v1/conversation:
-    get:
-      tags:
-        - conversation
-      summary: Get a conversation (for use by the DCA frontend)
-      description: This endpoint is used by the DCA frontend to retrieve the data of a conversation. This endpoint must return only the information the frontend needs (Datensparsamkeit!).
-      operationId: getConversation
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  callbackUrl:
-                    type: string
-                    format: url
-                  applicationTitle:
-                    type: string
-                    example: 'Gewerbeanmeldung'
-                  applicationSubject:
-                    type: string
-                    example: 'Schröder GmbH'
-                  authorizedRepresentative:
-                    $ref: '#/components/schemas/ConversationGet.NaturalPerson'
-                    nullable: true
-                  evidenceSubjects:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ConversationGet.EvidenceSubject'
-                  language:
-                    type: string
-                    example: 'de'
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-      security:
-        - bearerAuth: []  
-  /api/v1/conversation/end:
-    post:
-      tags:
-        - conversation
-      summary: Consent to the evidences of a conversation to be used in the application and mark the conversation as ended (for use by the DCA frontend)
-      description: This endpoint is used by the DCA frontend to mark the evidences of the evidence requests of a conversation as consented to to be submitted to the DC and mark the conversation as ended.
-      operationId: consentToEvidence
-      requestBody:
-        description: Appove the evidences of the evidence requests of a conversation to be used in the  application and mark the conversation as ended
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-               - evidenceRequests
-              properties:
-                consentedEvidenceRequestIds:
+                  format: url
+                requestedEvidencesList:
                   type: array
                   items:
-                    type: string
-                    format: uuid
-        required: true
-      responses:
-        '204':
-          description: Successful operation
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-      security:
-        - bearerAuth: []  
-  /api/v1/conversation/evidences:
-    get:
-      tags:
-        - conversation
-      summary: Retrieve the evidence data (for use by the DC)
-      description: This endpoint is used by the DC to get the evidence data from the DCA. This endpoint is not exposed to the internet. It can only be accessed inside the local network the DC and DCA are both in.
-      operationId: getEvidences
+                    $ref: '#/components/schemas/ConversationStart.RequestedEvidence'
       responses:
         '200':
           description: Successful operation
@@ -193,28 +63,105 @@ paths:
               schema:
                 type: object
                 properties:
-                  error:
+                  conversationId:
                     type: string
-                  errorMessage:
-                    type: string
-                  evidenceRequests:
+                    format: uuid
+                    description: Eindeutige ID der gestarteten Konversation. Die ID wird später verwendet, um die mit dieser Methode eingereichten Informationen bei späteren Nachweisabrufen abzuholen.
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+  /api/v1/conversations/{conversationId}/evidencetypes:
+    get:
+      tags:
+        - conversations
+      summary: Die abzurufenden Nachweistypen und die Beschreibung der Nachweistypen werden zu einer conversationId gespeichert.
+      description: Dieser end point kann direkt von einem Browser (über Internet) abgerufen werden.
+      operationId: getEvidenceTypesForConversation
+      parameters:
+        - name: conversationId
+            in: path
+            required: true
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                    evidenceTypeId:
+                      type: string
+                      format: uuid
+                      description: Identifier des Nachweistyps
+                      example: '9151f21f-43ae-43b4-92f3-f4af67cdf544'
+                    evidenceTypeName:
+                      type: string
+                      description: Name des Nachweistyps entsprechend Information in RDN (Registerdatennavigation)
+                      example: 'Geburtsurkunde'
+                    evidenceProviderName:
+                      type: string
+                      description: Name der datenliefernden Stelle entsprechend Information in RDN (Registerdatennavigation)
+                      example: 'Standesamt Hamburg'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+  /api/v1/conversations/{conversationId}/preview-data:
+    get:
+      tags:
+        - conversation
+      summary: Liefert Nachweisdaten inkl. Vorlage für ein rendering der Nachweisdaten in einem menschenlesbaren Format.
+      operationID: getPreviewData
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - evidenceTypeIds:
+          in: query
+          required: false
+          description: optionale Auswahl der Nachweistypen sofern nicht alle Nachweistypen geliefert werden sollen
+      responses:
+        '200':
+          description: Die Preview-Daten wurden erfolgreich geholt.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  previewData:
                     type: array
                     items:
                       type: object
-                      required:
-                       - evidenceRequestId
-                      properties:
-                        evidenceRequestId:
+                    properties:
+                        evidenceTypeId:
                           type: string
                           format: uuid
-                        error:
-                          type: string
-                        errorMessage:
-                          type: string
-                        evidences:
-                          type: array
-                          items:
-                            $ref: '#/components/schemas/EvidenceData'
+                        structuredData:
+                          type: object
+                          description: Structured Data for the Evidence Type
+                        renderingTemplate:
+                          type: object
+                          properties:
+                            type: string
+                            enum: [XSLT, JSON]
+                            description: Format für das Rendering der Nachweidaten in einem menschenlesbaren Format
+                          content:
+                            type: string
+                            description: Inhalt der Vorlage für das Rendering der Nachweisdaten in einem menschenlesbaren Format
         default:
           description: Error
           content:
@@ -223,102 +170,114 @@ paths:
                 $ref: '#/components/schemas/Error'
       security:
         - bearerAuth: []
-  /api/v1/evidence/request:
-    post:
-      tags:
-        - evidence
-      summary: Start an evidence request (for use by the DCA frontend)
-      description: This endpoint is used by the DCA frontend to initiate the request of an evidence via the NOOTS and to retrieve information about this evidence.
-      operationId: requestEvidence
+  /api/v1/conversations/{conversationId}/consent:
+    patch:
+      summary: Zustimmung des Antragsstellenden zur Verwendung von Nachweistypen innerhalb einer bestehenden Konversation speichern, siehe §5 EGovG.
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Die ID der bestehenden Konversation
       requestBody:
-        description: Start an evidence request
+        required: true
         content:
           application/json:
             schema:
               type: object
               required:
-               - evidenceRequestId
+                - evidenceConsents
               properties:
-                evidenceRequestId:
-                  type: string
-                  format: uuid
-        required: true
+                evidenceConsents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      evidenceTypeId:
+                        type: string
+                        format: uuid
+                        description: UUID des Nachweistyps
+                      consentGiven:
+                        type: boolean
+                        description: Zustimmung des Nutzers zur Verwendung dieses Nachweises
+                  minItems: 1
+      responses:
+        '204':
+          description: Zustimmung erfolgreich gespeichert
+        '400':
+          description: Ungültige Anfrage (z. B. Bezugnahme zu einem evidenceTypeId, der nicht abgefragt werden sollte)
+        '404':
+          description: Konversation nicht gefunden
+      security:
+        - bearerAuth: []
+  /api/v1/conversations/{conversationId}/evidences:
+    get:
+      summary: >
+        Liefert Consent-Status für alle angefragte Nachweistypen und Nachweisdaten für Nachweistypen, die der Antragsstellende
+        abrufen möchte.
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Die ID der bestehenden Konversation
       responses:
         '200':
-          description: Successful operation
+          description: Liste der Nachweistypen mit Consent-Status und Nachweisdaten, sofern der Antragsstellende hierzu ein consent gegeben hat.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  evidences:
+                  conversationId:
+                    type: string
+                  evidenceList:
                     type: array
                     items:
-                      $ref: '#/components/schemas/EvidencePreview'
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-      security:
-        - bearerAuth: []
-  /api/v1/evidence/cancel:
-    post:
-      tags:
-        - evidence
-      summary: Cancel an evidence request (for use by the DCA frontend)
-      description: This endpoint is used by the DCA frontend to mark an evidence request as canceled .
-      operationId: cancelEvidenceRequest
-      requestBody:
-        description: Cancel an evidence request
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-               - evidenceRequestId
-               - canceled
-              properties:
-                evidenceRequestId:
-                  type: string
-                  format: uuid
-        required: true
+                      type: object
+                      properties:
+                        evidenceTypeId:
+                          type: string
+                          format: uuid
+                        consentGiven:
+                          type: boolean
+                          nullable: true
+                        evidenceDistribution:
+                          type: object
+                          nullable: true
+                          properties:
+                            fileName:
+                              type: string
+                            ootsMediaType:
+                              $ref: '#/components/schemas/OotsMediaType'
+                            evidenceSchema:
+                              type: string
+                              format: uri
+                            downloadUrl:
+                              type: string
+                              format: uri
+        '404':
+          description: Konversation nicht gefunden
+
+  /api/v1/conversations/{conversationId}:
+    delete:
+      summary: Löscht alle Daten zu einer Konversation
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Die ID der zu löschenden Konversation
       responses:
         '204':
-          description: Successful operation
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: Konversation erfolgreich gelöscht
+        '404':
+          description: Konversation nicht gefunden
       security:
-        - bearerAuth: []  
-  /request:
-    post:
-      tags:
-        - DCA frontend entry point
-      summary: DCA entry point (for use by the DC)
-      description: This is the url that the DC invokes to redirect the user to the DCA after it hat started a conversation.
-      operationId: dca
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              required:
-               - jwt
-               - refreshToken
-              properties:
-                jwt:
-                  type: string
-                refreshToken:
-                  type: string
-        required: true
-      responses:
-        '200':
-          description: OK
+        - bearerAuth: []
 components:
   schemas:
     Error:
@@ -328,49 +287,134 @@ components:
           type: string
         errorMessage:
           type: string
-    ConversationStart.Address:
+    ConversationStart.RequestedEvidence:
       type: object
       required:
-       - fullAddress
-       - thoroughfare
-       - locatorDesignator
-       - adminUnitLevel1
-       - postCode
-       - cityName
+        - requestedEvidenceIdentifier
+        - requestedEvidenceOrigin
+        - requestedEvidenceTypeDistributionList
       properties:
-        fullAddress:
+        requestedEvidenceIdentifier:
           type: string
-        thoroughfare:
+          format: UUID
+          description: Identifikator des Nachweistyps. Dieser kann für nationale Nachweisabrufe im Nachweiskatalog gefunden werden.
+          example: "9151f21f-43ae-43b4-92f3-f4af67cdf544"
+        requestedEvidenceOrigin:
           type: string
-        locatorDesignator:
+          enum:
+            - DE  # Deutschland
+            - EU  # EU-Mitgliedstaat, hier nicht Deutschland
+            - AT  # Österreich
+            - BE  # Belgien
+            - BG  # Bulgarien
+            - HR  # Kroatien
+            - CY  # Zypern
+            - CZ  # Tschechien
+            - DK  # Dänemark
+            - EE  # Estland
+            - FI  # Finnland
+            - FR  # Frankreich
+            - GR  # Griechenland
+            - HU  # Ungarn
+            - IE  # Irland
+            - IT  # Italien
+            - LV  # Lettland
+            - LT  # Litauen
+            - LU  # Luxemburg
+            - MT  # Malta
+            - NL  # Niederlande
+            - PL  # Polen
+            - PT  # Portugal
+            - RO  # Rumänien
+            - SK  # Slowakei
+            - SI  # Slowenien
+            - ES  # Spanien
+            - SE  # Schweden
+          description: >
+            Herkunft des nachgefragten Nachweistyps entsprechend ISO 3166-1 Alpha-2 Code in codeliste "urn:xoev-de:kosit:codeliste:country-codes".
+            Nur Länder der Europäischen Union dürfen eingetragen werden. Wenn der Data Consumer Adpater oder die Intermediäre Plattform im Dialog mit
+            dem Antragsstellenden nachträglich die Herkunft ermitteln soll und die Herkunft nicht Deutschland ist, wird der Wert "EU" eingetragen.
+        requestedEvidenceTypeDistributionList:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ConversationStart.RequestedEvidence.RequestedEvidenceTypeDistribution'
+        rechtsgrundlage:
           type: string
-        adminUnitLevel1:
+          description: Hier wird für nationale Abrufe die Rechtsgrundlage für den Nachweisabruf beschrieben
+          example: "§ 9 Handelsgesetzbuch (HGB)"
+        verarbeitungszweck:
           type: string
-        adminUnitLevel2:
-          type: string
-        postCode:
-          type: string
-        cityName:
-          type: string
-    ConversationStart.NaturalPerson:
+          description: >
+            Hier wird für nationale Abrufe der Verarbeitungszweck gemäß noch zu veröffentlichender Code-Liste eingetragen.
+            Für "Onlinedienst (interaktiver) Nachweisabruf ist das "1"
+          example: 1
+        jurisdictionParameter:
+          type: object
+          required:
+            - zuständigkeitswert
+            - zuständigkeitsbestimmung
+          properties:
+            zuständigkeitswert:
+              type: string
+              example: "110009000000"
+              description: >
+                Angabe des Zuständigkeitswerts zur Ermittlung des zuständigen Registers. Im Beispiel: Wert des amtlichen Regionalschlüssels des 
+                Stadtbezirks Steglitz-Zehlendorf
+            zuständigkeitsbestimmung:
+              type: string
+              example: "ars"
+              description: >
+                Angabe der (Code Liste) zur Ermittlung des zuständigen Registers. Im Beispiel unten erfolgt die Zuständigkeitsbestimmung
+                nach dem Amtlichen Regionalschlüssel.
+    ConversationStart.RequestedEvidence.RequestedEvidenceTypDistribution:
       type: object
       required:
-       - levelOfAssurance
-       - dateOfBirth
-       - familyName
-       - givenName
-       - address
+        - ootsMediaTyp
       properties:
-        IDNr:
+        ootsMediaType:
+          $ref: '#/components/schemas/OotsMediaType'
+          example: "application/xml"
+        priority:
+          type: integer
+          minimum: 1
+          description: Eindeutige Priorität des Nachweisformats als positive ganze Zahl.
+        evidenceSchema:
           type: string
-          nullable: true
-        levelOfAssurance:
+          format: uri
+          description: >
+            Verweis auf ein Schema in einer definierten Version. Bei Nachweisanfragen aus dem EU-Ausland muss der
+            Wert dem Muster 'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
+            example: "https://www.xrepository.de/api/xrepository/urn:xoev-de:blk-ag-it-standards:standard:xjustiz_3.6.2:xmlschema"
+        transformationSchema:
           type: string
-          enum : ['low', 'substancial', 'high']
-        placeOfBirth:
-          type: string
-        gender:
-          type: string
+          format: uri
+          description: >
+            Verweis auf ein Schema, dass ein Subset der geforderten Daten definiert. Bei Nachweisanfragen aus dem EU-Ausland muss der
+            Wert dem Muster 'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
+    IdentifierPerson:
+      type: object
+      required:
+        - person
+      properties:
+        person:
+          oneOf:
+            - $ref: '#/components/schemas/NaturalPerson'
+            - $ref: '#/components/schemas/LegalPerson'
+          discriminator:
+            propertyName: type
+            mapping:
+              naturalPerson: '#/components/schemas/NaturalPerson'
+              legalPerson: '#/components/schemas/LegalPerson'
+            description: Entweder eine natürliche oder eine juristische Person – genau eine muss angegeben werden.
+    NaturalPerson:
+      type: object
+      required:
+        - dateOfBirth
+        - familyName
+        - givenName
+        - levelOfAssurance
+      properties:
         dateOfBirth:
           type: string
           format: date
@@ -378,40 +422,107 @@ components:
           type: string
         givenName:
           type: string
-        address:
-          $ref: '#/components/schemas/ConversationStart.Address'
-    ConversationStart.LegalPerson:
-      type: object
-      required:
-       - levelOfAssurance
-       - legalName
-       - address
-      properties:
-        legalPersonIdentifier:
+        levelOfAssurance:
+          $ref: '#/components/schemas/LevelOfAssurance'
+        placeOfBirth:
           type: string
-          nullable: true
-        beWiNr:
-          type: string
-          nullable: true
-        identifiers:
+        currentAddress:
+          $ref: '#/components/schemas/Address'
+        sectorSpecificAttributeList:
           type: array
           items:
-            type: object
-            properties:
-              identifier:
-                type: string
-                nullable: true
-              identifierType:
-                type: string
-                enum : ['VAT', 'TAX', 'BusinessCode', 'LEI', 'EORI', 'SEED', 'SIC']
-                nullable: true
-        levelOfAssurance:
+            $ref: '#/components/schemas/SectorSpecificAttribute'
+        nationality:
           type: string
-          enum : ['low', 'substancial', 'high']
+        townOfBirth:
+          type: string
+    LegalPerson:
+      type: object
+      required:
+        - legalName
+        - levelOfAssurance
+        - address
+      properties:
         legalName:
           type: string
-        address:
-          $ref: '#/components/schemas/ConversationStart.Address'
+        levelOfAssurance:
+          $ref: '#/components/schemas/LevelOfAssurance'
+        registeredAddress:
+          $ref: '#/components/schemas/Address'
+        legalPersonEIDASIdentifier:
+          type: string
+          description: eIDAS-konformer Identifier
+          example: "ES/AT/02635542Y"
+        legalPersonIdentifier:
+          type: string
+          description: Hier erfolgt die Angabe des EUID entsprechend Durchführungsverordnung (EU) 2020/2244 der Kommission vom 17. Dezember 2020
+          example: "DE.HRB.123456"
+        sectorSpecificAttributeList:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectorSpecificAttribute'
+    Address:
+      type: object
+      required:
+        - fullAddress
+        - thoroughfare
+        - locatorDesignator
+        - country
+        - postCode
+        - postCityName
+      properties:
+        fullAddress:
+        type: string
+        description: Die vollständige Adresse (Strasse, Postleitzahl, Stadt/Gemeinde, Land)
+      thoroughfare:
+        type: string
+        description: Die Straße ohne Nummer
+      locatorDesignator:
+        type: string
+        description: Die Nummerangabe als Ergänzung zur Straßenangabe
+      country:
+        type: string
+        description: Das Land entsprechend ISO 3166-1 Alpha-2 Code in codeliste "urn:xoev-de:kosit:codeliste:country-codes"
+      postCode:
+        type: string
+        description: Postleitzahl
+      postCityName:
+        type: string
+        description: Stadt oder Gemeinde
+    SectorSpecificAttribute:
+      type: object
+      required:
+        - attributeName
+        - attributeURI
+        - attributeValue
+      properties:
+        attributeName:
+          type: string
+        attributeURI:
+          type: string
+          format: uri
+        attributeValue:
+          type: string
+    AssuranceLevel:
+      type: string
+      enum:
+        - Low
+        - Substantial
+        - High
+      description: Das Vertrauensniveau gemäß eIDAS oder ähnlichen Standards.
+    OotsMediaType:
+      type: string
+      enum:
+        - image/jpeg
+        - image/jpg
+        - image/png
+        - image/svg+xml
+        - application/pdf
+        - application/json
+        - application/xml
+
+
+
     ConversationStart.EvidenceSubject:
       type: object
       properties:
@@ -467,23 +578,13 @@ components:
                     value:
                       type: string
                 description: This data is used by the frontend to display information about the evidence that is requested.
-    ConversationGet.Address:
-      type: object
-      required:
-       - postCode
-       - cityName
-      properties:
-        postCode:
-          type: string
-        cityName:
-          type: string
     ConversationGet.NaturalPerson:
       type: object
       required:
-       - dateOfBirth
-       - familyName
-       - givenName
-       - address
+      - dateOfBirth
+      - familyName
+      - givenName
+      - address
       properties:
         dateOfBirth:
           type: string
@@ -497,8 +598,8 @@ components:
     ConversationGet.LegalPerson:
       type: object
       required:
-       - legalName
-       - address
+      - legalName
+      - address
       properties:
         beWiNr:
           type: string

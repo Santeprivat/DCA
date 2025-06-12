@@ -39,21 +39,22 @@ WSPNRW->WEB: Anmeldung am \nUnternehmenskonto \nerfolgt \n(zurück zum WSP)
 WEB->WSPNRW: Antrag \nGewerbeanmeldung \ninitialisieren
 
 WSPNRW->DCABE: Conversation für die Nachweisanfrage starten \n(Redirect-URL zum Antragsformular, \nIdentitätsdaten, \n Liste(Nachweissubjekt, Nachweistyp, \nZuständigkeitswert, DatenformatListe))\nPOST/api/v1/conversation/start
-DCABE->DCABE: Authentifizierung des WSPNRW \nund Erzeugung einer UUID und \neines JSON Web Token (JWT) \nals Conversation-ID
-DCABE->SAKDC: getZugriffstoken \n (Komponenten-ID, Zertifikat)  
-SAKDC->IAM: getZugriffstoken \n (Komponenten-ID, Zertifikat)
-IAM-->SAKDC: getZugriffstoken Response \n (NOOTS OAuth Access Token)
-SAKDC->DCABE: getZugriffstoken Response
-DCABE->DCABE: Speichern der Konversationsdaten zur \nConversation-ID 
 DCABE->WSPNRW: Conversation-ID \nan Data Consumer geben
-WSPNRW->WEB: Redirect-URL zum DCA \n(Auswahl der Nachweistypen) \nund Conversation-ID \nan Browser zurück geben
-WEB->DCAFE: Auswählbare Nachweistypen laden \nPOST/request
+WSPNRW->WEB: Redirect-URL zum DCA\nund Conversation-ID \nan Browser zurück geben
+WEB->DCAFE: Auswählbare Nachweistypen laden, damit der Antragsstellende \neine Zustimmung zum Nachweisabruf geben kann POST/api/v1/conversation/requestEvidenceTypes
 DCAFE->DCABE: Daten der Conversation laden\nGET/api/v1/conversation
 
 DCABE->DCAFE: Daten der Conversation Response
 DCAFE->WEB: Auswählbare Nachweistypen laden Response
 WEB->DCAFE: Nachweistypen auswählen und \n Zustimmung zum Nachweisabruf erteilen
 DCAFE->DCABE: Nachweise anfragen\nPOST/API/v1/evidence/request 
+
+DCABE->DCABE: Authentifizierung der WSP-Antragsplattform \nund Erzeugung einer UUID und \neines JSON Web Token (JWT) \nals Conversation-ID
+DCABE->SAKDC: getZugriffstoken \n (Komponenten-ID, Zertifikat)  
+SAKDC->IAM: getZugriffstoken \n (Komponenten-ID, Zertifikat)
+IAM-->SAKDC: getZugriffstoken Response \n (NOOTS OAuth Access Token)
+SAKDC->DCABE: getZugriffstoken Response
+DCABE->DCABE: Speichern der Konversationsdaten zur \nConversation-ID 
 
 alt Falls Abruf der Id.Nr. zur Person erforderlich ist
 
