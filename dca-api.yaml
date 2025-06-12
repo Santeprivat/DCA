@@ -87,27 +87,30 @@ paths:
         - name: conversationId
             in: path
             required: true
-            type: string
+            schema:
       responses:
         '200':
           description: Successful operation
           content:
             application/json:
               schema:
-                type: array
                 items:
-                  type: object
+                  schema:
+                    type: object
                     evidenceTypeId:
-                      type: string
+                      schema:
+                        type: string
                       format: uuid
                       description: Identifier des Nachweistyps
                       example: '9151f21f-43ae-43b4-92f3-f4af67cdf544'
                     evidenceTypeName:
-                      type: string
+                      schema:
+                        type: string
                       description: Name des Nachweistyps entsprechend Information in RDN (Registerdatennavigation)
                       example: 'Geburtsurkunde'
                     evidenceProviderName:
-                      type: string
+                      schema:
+                        type: string
                       description: Name der datenliefernden Stelle entsprechend Information in RDN (Registerdatennavigation)
                       example: 'Standesamt Hamburg'
         default:
@@ -123,13 +126,12 @@ paths:
       tags:
         - conversation
       summary: Liefert Nachweisdaten inkl. Vorlage für ein rendering der Nachweisdaten in einem menschenlesbaren Format.
-      operationID: getPreviewData
+      operationId: getPreviewData
       parameters:
         - name: conversationId
           in: path
           required: true
           schema:
-            type: string
         - evidenceTypeIds:
           in: query
           required: false
@@ -140,27 +142,33 @@ paths:
           content:
             application/json:
               schema:
-                type: object
                 properties:
                   previewData:
-                    type: array
+                    schema:
+                      type: array
                     items:
-                      type: object
+                      schema:
+                        type: object
                     properties:
                         evidenceTypeId:
-                          type: string
+                          schema:
+                            type: string
                           format: uuid
                         structuredData:
-                          type: object
+                          schema:
+                            type: object
                           description: Structured Data for the Evidence Type
                         renderingTemplate:
-                          type: object
+                          schema:
+                            type: object
                           properties:
-                            type: string
+                            schema:
+                              type: string
                             enum: [XSLT, JSON]
                             description: Format für das Rendering der Nachweidaten in einem menschenlesbaren Format
                           content:
-                            type: string
+                            schema:
+                              type: string
                             description: Inhalt der Vorlage für das Rendering der Nachweisdaten in einem menschenlesbaren Format
         default:
           description: Error
@@ -173,33 +181,36 @@ paths:
   /api/v1/conversations/{conversationId}/consent:
     patch:
       summary: Zustimmung des Antragsstellenden zur Verwendung von Nachweistypen innerhalb einer bestehenden Konversation speichern, siehe §5 EGovG.
+      operationId: patchConsent
       parameters:
         - name: conversationId
           in: path
           required: true
           schema:
-            type: string
           description: Die ID der bestehenden Konversation
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
               required:
                 - evidenceConsents
               properties:
                 evidenceConsents:
-                  type: array
+                  schema:
+                    type: array
                   items:
-                    type: object
+                    schema:
+                      type: object
                     properties:
                       evidenceTypeId:
-                        type: string
+                        schema:
+                          type: string
                         format: uuid
                         description: UUID des Nachweistyps
                       consentGiven:
-                        type: boolean
+                        schema:
+                          type: boolean
                         description: Zustimmung des Nutzers zur Verwendung dieses Nachweises
                   minItems: 1
       responses:
@@ -216,12 +227,12 @@ paths:
       summary: >
         Liefert Consent-Status für alle angefragte Nachweistypen und Nachweisdaten für Nachweistypen, die der Antragsstellende
         abrufen möchte.
+      operationId: getEvidences
       parameters:
         - name: conversationId
           in: path
           required: true
           schema:
-            type: string
           description: Die ID der bestehenden Konversation
       responses:
         '200':
@@ -229,34 +240,42 @@ paths:
           content:
             application/json:
               schema:
-                type: object
                 properties:
                   conversationId:
-                    type: string
+                    schema:
+                      type: string
                   evidenceList:
-                    type: array
+                    schema:
+                      type: array
                     items:
-                      type: object
+                      schema:
+                        type: object
                       properties:
                         evidenceTypeId:
-                          type: string
+                          schema:
+                            type: string
                           format: uuid
                         consentGiven:
-                          type: boolean
+                          schema:
+                            type: boolean
                           nullable: true
                         evidenceDistribution:
-                          type: object
+                          schema:
+                            type: object
                           nullable: true
                           properties:
                             fileName:
-                              type: string
+                              schema:
+                                type: string
                             ootsMediaType:
                               $ref: '#/components/schemas/OotsMediaType'
                             evidenceSchema:
-                              type: string
+                              schema:
+                                type: string
                               format: uri
                             downloadUrl:
-                              type: string
+                              schema:
+                                type: string
                               format: uri
         '404':
           description: Konversation nicht gefunden
@@ -264,12 +283,12 @@ paths:
   /api/v1/conversations/{conversationId}:
     delete:
       summary: Löscht alle Daten zu einer Konversation
+      operationId: deleteConversation
       parameters:
         - name: conversationId
           in: path
           required: true
           schema:
-            type: string
           description: Die ID der zu löschenden Konversation
       responses:
         '204':
@@ -281,26 +300,32 @@ paths:
 components:
   schemas:
     Error:
-      type: object
+      schema:
+        type: object
       properties:
         error:
-          type: string
+          schema:
+            type: string
         errorMessage:
-          type: string
+          schema:
+            type: string
     ConversationStart.RequestedEvidence:
-      type: object
+      schema:
+        type: object
       required:
         - requestedEvidenceIdentifier
         - requestedEvidenceOrigin
         - requestedEvidenceTypeDistributionList
       properties:
         requestedEvidenceIdentifier:
-          type: string
+          schema:
+            type: string
           format: UUID
           description: Identifikator des Nachweistyps. Dieser kann für nationale Nachweisabrufe im Nachweiskatalog gefunden werden.
           example: "9151f21f-43ae-43b4-92f3-f4af67cdf544"
         requestedEvidenceOrigin:
-          type: string
+          schema:
+            type: string
           enum:
             - DE  # Deutschland
             - EU  # EU-Mitgliedstaat, hier nicht Deutschland
@@ -335,40 +360,47 @@ components:
             Nur Länder der Europäischen Union dürfen eingetragen werden. Wenn der Data Consumer Adpater oder die Intermediäre Plattform im Dialog mit
             dem Antragsstellenden nachträglich die Herkunft ermitteln soll und die Herkunft nicht Deutschland ist, wird der Wert "EU" eingetragen.
         requestedEvidenceTypeDistributionList:
-          type: array
+          schema:
+            type: array
           minItems: 1
           items:
             $ref: '#/components/schemas/ConversationStart.RequestedEvidence.RequestedEvidenceTypeDistribution'
         rechtsgrundlage:
-          type: string
+          schema:
+            type: string
           description: Hier wird für nationale Abrufe die Rechtsgrundlage für den Nachweisabruf beschrieben
           example: "§ 9 Handelsgesetzbuch (HGB)"
         verarbeitungszweck:
-          type: string
+          schema:
+            type: string
           description: >
             Hier wird für nationale Abrufe der Verarbeitungszweck gemäß noch zu veröffentlichender Code-Liste eingetragen.
             Für "Onlinedienst (interaktiver) Nachweisabruf ist das "1"
           example: 1
         jurisdictionParameter:
-          type: object
+          schema:
+            type: object
           required:
             - zuständigkeitswert
             - zuständigkeitsbestimmung
           properties:
             zuständigkeitswert:
-              type: string
+              schema:
+                type: string
               example: "110009000000"
               description: >
                 Angabe des Zuständigkeitswerts zur Ermittlung des zuständigen Registers. Im Beispiel: Wert des amtlichen Regionalschlüssels des 
                 Stadtbezirks Steglitz-Zehlendorf
             zuständigkeitsbestimmung:
-              type: string
+              schema:
+                type: string
               example: "ars"
               description: >
                 Angabe der (Code Liste) zur Ermittlung des zuständigen Registers. Im Beispiel unten erfolgt die Zuständigkeitsbestimmung
                 nach dem Amtlichen Regionalschlüssel.
     ConversationStart.RequestedEvidence.RequestedEvidenceTypDistribution:
-      type: object
+      schema:
+        type: object
       required:
         - ootsMediaTyp
       properties:
@@ -376,24 +408,28 @@ components:
           $ref: '#/components/schemas/OotsMediaType'
           example: "application/xml"
         priority:
-          type: integer
+          schema:
+            type: integer
           minimum: 1
           description: Eindeutige Priorität des Nachweisformats als positive ganze Zahl.
         evidenceSchema:
-          type: string
+          schema:
+            type: string
           format: uri
           description: >
             Verweis auf ein Schema in einer definierten Version. Bei Nachweisanfragen aus dem EU-Ausland muss der
             Wert dem Muster 'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
             example: "https://www.xrepository.de/api/xrepository/urn:xoev-de:blk-ag-it-standards:standard:xjustiz_3.6.2:xmlschema"
         transformationSchema:
-          type: string
+          schema:
+            type: string
           format: uri
           description: >
             Verweis auf ein Schema, dass ein Subset der geforderten Daten definiert. Bei Nachweisanfragen aus dem EU-Ausland muss der
             Wert dem Muster 'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
     IdentifierPerson:
-      type: object
+      schema:
+        type: object
       required:
         - person
       properties:
@@ -408,7 +444,8 @@ components:
               legalPerson: '#/components/schemas/LegalPerson'
             description: Entweder eine natürliche oder eine juristische Person – genau eine muss angegeben werden.
     NaturalPerson:
-      type: object
+      schema:
+        type: object
       required:
         - dateOfBirth
         - familyName
@@ -416,53 +453,66 @@ components:
         - levelOfAssurance
       properties:
         dateOfBirth:
-          type: string
+          schema:
+            type: string
           format: date
         familyName:
-          type: string
+          schema:
+            type: string
         givenName:
-          type: string
+          schema:
+            type: string
         levelOfAssurance:
           $ref: '#/components/schemas/LevelOfAssurance'
         placeOfBirth:
-          type: string
+          schema:
+            type: string
         currentAddress:
           $ref: '#/components/schemas/Address'
         sectorSpecificAttributeList:
-          type: array
+          schema:
+            type: array
           items:
             $ref: '#/components/schemas/SectorSpecificAttribute'
         nationality:
-          type: string
+          schema:
+            type: string
         townOfBirth:
-          type: string
+          schema:
+            type: string
     LegalPerson:
-      type: object
+      schema:
+        type: object
       required:
         - legalName
         - levelOfAssurance
         - address
       properties:
         legalName:
-          type: string
+          schema:
+            type: string
         levelOfAssurance:
           $ref: '#/components/schemas/LevelOfAssurance'
         registeredAddress:
           $ref: '#/components/schemas/Address'
         legalPersonEIDASIdentifier:
-          type: string
+          schema:
+            type: string
           description: eIDAS-konformer Identifier
           example: "ES/AT/02635542Y"
         legalPersonIdentifier:
-          type: string
+          schema:
+            type: string
           description: Hier erfolgt die Angabe des EUID entsprechend Durchführungsverordnung (EU) 2020/2244 der Kommission vom 17. Dezember 2020
           example: "DE.HRB.123456"
         sectorSpecificAttributeList:
-          type: array
+          schema:
+            type: array
           items:
             $ref: '#/components/schemas/SectorSpecificAttribute'
     Address:
-      type: object
+      schema:
+        type: object
       required:
         - fullAddress
         - thoroughfare
@@ -472,46 +522,58 @@ components:
         - postCityName
       properties:
         fullAddress:
-        type: string
+        schema:
+          type: string
         description: Die vollständige Adresse (Strasse, Postleitzahl, Stadt/Gemeinde, Land)
       thoroughfare:
-        type: string
+        schema:
+          type: string
         description: Die Straße ohne Nummer
       locatorDesignator:
-        type: string
+        schema:
+          type: string
         description: Die Nummerangabe als Ergänzung zur Straßenangabe
       country:
-        type: string
+        schema:
+          type: string
         description: Das Land entsprechend ISO 3166-1 Alpha-2 Code in codeliste "urn:xoev-de:kosit:codeliste:country-codes"
       postCode:
-        type: string
+        schema:
+          type: string
         description: Postleitzahl
       postCityName:
-        type: string
+        schema:
+          type: string
         description: Stadt oder Gemeinde
     SectorSpecificAttribute:
-      type: object
+      schema:
+        type: object
       required:
         - attributeName
         - attributeURI
         - attributeValue
       properties:
         attributeName:
-          type: string
+          schema:
+            type: string
         attributeURI:
-          type: string
+          schema:
+            type: string
           format: uri
         attributeValue:
-          type: string
+          schema:
+            type: string
     AssuranceLevel:
-      type: string
+      schema:
+        type: string
       enum:
         - Low
         - Substantial
         - High
       description: Das Vertrauensniveau gemäß eIDAS oder ähnlichen Standards.
     OotsMediaType:
-      type: string
+      schema:
+        type: string
       enum:
         - image/jpeg
         - image/jpg
