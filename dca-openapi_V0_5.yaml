@@ -111,9 +111,9 @@ paths:
             schema:
               type: object
               required:
-                - refreshToken
+                - refreshTokenJwt
               properties:
-                refreshToken:
+                refreshTokenJwt:
                   type: string
                   description: 'Der refresh Token wurde bei der Nutzung des Endpunkts Conversation/Start ausgestellt.'
         required: true
@@ -128,18 +128,18 @@ paths:
                   tokenJwt:
                     type: string
                     description: JWT mit conversationId.
-                    example: >
-                      eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.
-                      eyJjb252ZXJzYXRpb25JRCI6ICJmMTk0MzYxZi05ZGJjLTRhZTMtYjcyMS03ZWY5MmE0NTI0YzgiLCAiaWF0IjogMTc1MTI3MTQ3NywgImV4cCI6IDE3NTEyNzE1Mzd9.
-                      a-FdQaLCKA2IYePX6KVobS997X9SG93hrtpMEb02iKA
                   refreshTokenJwt:
                     type: string
                     description: JWT - kann genutzt werden, um einen neuen Token auszustellen. Der JWT kann nur über interne Netze verwendet werden.
-                    example: >
+              examples:
+                success:
+                  value:
+                    tokenJwt: >
+                      eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJjb252ZXJzYXRpb25JRCI6ICJmMTk0MzYxZi05ZGJjLTRhZTMtYjcyMS03ZWY5MmE0NTI0YzgiLCAiaWF0IjogMTc1MTI3MTQ3NywgImV4cCI6IDE3NTEyNzE1Mzd9.a-FdQaLCKA2IYePX6KVobS997X9SG93hrtpMEb02iKA
+                    refreshTokenJwt: >
                       eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.
                       eyJjb252ZXJzYXRpb25JRCI6ICJmMTk0MzYxZi05ZGJjLTRhZTMtYjcyMS03ZWY5MmE0NTI0YzgiLCAidHlwZSI6ICJyZWZyZXNoIiwgImlhdCI6IDE3NTEyNzE0NzcsICJleHAiOiAxNzUxMjczMjc3fQ.
                       4cCFVf5n_UoEm52B89ZrCMghnm2wPCEgA-mokdIdLkI
-
         default:
           description: Error
           content:
