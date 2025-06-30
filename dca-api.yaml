@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: Data Consumer Adapter
   version: 0.1.0
@@ -6,55 +6,114 @@ paths:
   /api/v1/conversations:
     post:
       tags:
-        - conversations
-      summary: >
-        Initiierung eines Nachweisabrufs einen oder mehrere Nachweise durch einen Data Consumer (DC). Anlage einer "conversation" mit Information über
-        alle abzurufende Nachweise und Information über den Antragsstellenden (Bürger und Unternehmen).
-      description: >
-        Dieser endpoint wird verwendet für den Data Consumer (DC) bei einem Nachweisabruf mit Hilfe des lokal in der Nähe des Data Consumer installierten
-        Data Consumer Adapters. Es wird die Backendkomponente des DC angesprochen. Die Komponente ist somit vom unsicheren Internet geschützt.
+      - conversations
+      summary: 'Initiierung eines Nachweisabrufs einen oder mehrere Nachweise durch
+        einen Data Consumer (DC). Anlage einer "conversation" mit Information über
+        alle abzurufende Nachweise und Information über den Antragsstellenden (Bürger
+        und Unternehmen).'
+      description: 'Dieser endpoint wird verwendet für den Data Consumer (DC) bei
+        einem Nachweisabruf mit Hilfe des lokal in der Nähe des Data Consumer installierten
+        Data Consumer Adapters. Es wird die Backendkomponente des DC angesprochen.
+        Die Komponente ist somit vom unsicheren Internet geschützt.'
       operationId: startConversation
       requestBody:
-        description: >
-          Initiierung eines Nachweisabrufs einer oder mehrere Nachweise durch einen Data Consumer (DC). Die redirectUrl wird verwendet,
-          damit im Rahmen eines redirects über den Browswer des Antragsstellenden der Data Consumer Adapter angesprochen werden kann. Als Antwort erhält der
-          Data Consumer ein ConversationID auf deren Grundlage er zu einem späteren Zeitpunkt die Nachweise abrufen kann.
+        description: 'Initiierung eines Nachweisabrufs einer oder mehrere Nachweise
+          durch einen Data Consumer (DC). Als Antwort erhält der Data Consumer ein
+          ConversationID auf deren Grundlage er zu einem späteren Zeitpunkt die Nachweise
+          abrufen kann.'
         content:
           application/json:
             schema:
               type: object
               required:
-                - componentId
-                - identifierPersonList
-                - language
-                - redirectUrl
-                - requestedEvidencesList
+              - componentId
+              - identifierPersonList
+              - language
+              - redirectUrl
+              - requestedEvidencesList
               properties:
                 componentId:
                   type: string
                   format: UUID
-                  description: >
-                    Mittels componentID kann der DCA anschließend eine Abfrage an IAM für Behörden (IAMfB) stellen
-                    und dabei sowohl die fachverantwortliche Stelle als auch die betriebsverwantwortliche Stelle des Data Consumers ermitteln.
+                  description: 'Mittels componentID kann der DCA anschließend eine
+                    Abfrage an IAM für Behörden (IAMfB) stellen und dabei sowohl die
+                    fachverantwortliche Stelle als auch die betriebsverwantwortliche
+                    Stelle des Data Consumers ermitteln.'
                 identifierPersonList:
                   type: array
                   minItems: 1
                   maxItems: 2
                   items:
                     $ref: '#/components/schemas/IdentifierPerson'
-                  description: >
-                    Es dürfen maximal zwei Einträge enthalten sein – jeweils ein Eintrag für natürliche und juristische Personen.
+                  description: 'Es dürfen maximal zwei Einträge enthalten sein – jeweils
+                    ein Eintrag für natürliche und juristische Personen.'
                 language:
                   type: string
                   description: Präferierte Sprache der zu liefernden Nachweisen
-                  example: 'de'
+                  example: de
                 redirectUrl:
                   type: string
                   format: url
                 requestedEvidencesList:
                   type: array
                   items:
-                    $ref: '#/components/schemas/ConversationStart.RequestedEvidence'
+                    $ref: '#/components/schemas/RequestedEvidence'
+            examples:
+              naturalPersonExample:
+                summary: Beispiel für natürliche Person
+                value:
+                  componentId: '550e8400-e29b-41d4-a716-446655440000'
+                  personType: naturalPerson
+                  person:
+                    givenName: Max
+                    familyName: Mustermann
+                    dateOfBirth: '1990-01-01'
+                    levelOfAssurance: High
+                  language: de
+                  redirectUrl: https://www.onlinedienst.de/anglerscheinantrag
+                  requestedEvidencesList:
+                    - requestedEvidenceIdentifier: '9151f21f-43ae-43b4-92f3-f4af67cdf544'
+                      requestedEvidenceOrigin: DE
+                      requestedEvidenceTypeDistributionList:
+                      - ootsMediaType: application/pdf
+                        priority: 1
+                        evidenceSchema: https://www.xrepository.de/api/xrepository/urn:xoev-de:blk-ag-it-standards:standard:xjustiz_3.6.2:xmlschema
+                        transformationSchema: https://www.xrepository.de/api/xrepository/urn:xoev-de:blk-ag-it-standards:standard:xjustiz_3.6.2:transform
+                      rechtsgrundlage: § 9 Handelsgesetzbuch (HGB)
+                      verarbeitungszweck: "1"
+                      jurisdictionParameter:
+                        zuständigkeitswert: "110009000000"
+                        zuständigkeitsbestimmung: ars
+              legalPersonExample:
+                summary: Beispiel für juristische Person
+                value:
+                  componentId: '550e8400-e29b-41d4-a716-446655440000'
+                  personType: legalPerson
+                  person:
+                    legalName: Musterfirma GmbH
+                    levelOfAssurance: High
+                    registeredAddress:
+                      fullAddress: Musterstraße 1, 12345 Musterstadt, DE
+                      thoroughfare: Musterstraße
+                      locatorDesignator: 1
+                      country: DE
+                      postCode: '12345'
+                      postCityName: Musterstadt
+                  language: de
+                  redirectUrl: https://www.onlinedienst.de/anglerscheinantrag
+                  requestedEvidencesList:
+                    - requestedEvidenceIdentifier: '9151f21f-43ae-43b4-92f3-f4af67cdf544'
+                      requestedEvidenceOrigin: DE
+                      requestedEvidenceTypeDistributionList:
+                      - ootsMediaType: application/pdf
+                        priority: 1
+                        evidenceSchema: https://www.xrepository.de/api/xrepository/urn:xoev-de:blk-ag-it-standards:standard:xjustiz_3.6.2:xmlschema
+                        transformationSchema: https://www.xrepository.de/api/xrepository/urn:xoev-de:blk-ag-it-standards:standard:xjustiz_3.6.2:transform
+                      rechtsgrundlage: § 9 Handelsgesetzbuch (HGB)
+                      verarbeitungszweck: "1"
+                      jurisdictionParameter:
+                        zuständigkeitswert: "110009000000"
+                        zuständigkeitsbestimmung: ars
       responses:
         '200':
           description: Successful operation
@@ -66,8 +125,10 @@ paths:
                   conversationId:
                     type: string
                     format: uuid
-                    description: Eindeutige ID der gestarteten Konversation. Die ID wird später verwendet, um die mit dieser Methode eingereichten Informationen bei späteren Nachweisabrufen abzuholen.
-                    example: "123e4567-e89b-12d3-a456-426614174000"
+                    description: Eindeutige ID der gestarteten Konversation. Die ID
+                      wird später verwendet, um die mit dieser Methode eingereichten
+                      Informationen bei späteren Nachweisabrufen abzuholen.
+                    example: 123e4567-e89b-12d3-a456-426614174000
         default:
           description: Error
           content:
@@ -75,41 +136,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
-        - bearerAuth: []
+      - bearerAuth: []
   /api/v1/conversations/{conversationId}/evidencetypes:
     get:
       tags:
-        - conversations
-      summary: Die abzurufenden Nachweistypen und die Beschreibung der Nachweistypen werden zu einer conversationId gespeichert.
-      description: Dieser end point kann direkt von einem Browser (über Internet) abgerufen werden.
+      - conversations
+      summary: Die abzurufenden Nachweistypen und die Beschreibung der Nachweistypen
+        werden zu einer conversationId gespeichert.
+      description: Dieser end point kann direkt von einem Browser (über Internet)
+        abgerufen werden.
       operationId: getEvidenceTypesForConversation
       parameters:
-        - name: conversationId
-            in: path
-            required: true
-            type: string
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: Successful operation
           content:
             application/json:
               schema:
-                type: array
                 items:
                   type: object
+                  properties:
                     evidenceTypeId:
                       type: string
                       format: uuid
                       description: Identifier des Nachweistyps
-                      example: '9151f21f-43ae-43b4-92f3-f4af67cdf544'
+                      example: 9151f21f-43ae-43b4-92f3-f4af67cdf544
                     evidenceTypeName:
                       type: string
-                      description: Name des Nachweistyps entsprechend Information in RDN (Registerdatennavigation)
-                      example: 'Geburtsurkunde'
+                      description: Name des Nachweistyps entsprechend Information
+                        in RDN (Registerdatennavigation)
+                      example: Geburtsurkunde
                     evidenceProviderName:
                       type: string
-                      description: Name der datenliefernden Stelle entsprechend Information in RDN (Registerdatennavigation)
-                      example: 'Standesamt Hamburg'
+                      description: Name der datenliefernden Stelle entsprechend Information
+                        in RDN (Registerdatennavigation)
+                      example: Standesamt Hamburg
         default:
           description: Error
           content:
@@ -117,23 +184,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
-        - bearerAuth: []
+      - bearerAuth: []
   /api/v1/conversations/{conversationId}/preview-data:
     get:
       tags:
-        - conversation
-      summary: Liefert Nachweisdaten inkl. Vorlage für ein rendering der Nachweisdaten in einem menschenlesbaren Format.
-      operationID: getPreviewData
+      - conversations
+      summary: Liefert Nachweisdaten inkl. Vorlage für ein rendering der Nachweisdaten
+        in einem menschenlesbaren Format.
+      operationId: getPreviewData
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - evidenceTypeIds:
-          in: query
-          required: false
-          description: optionale Auswahl der Nachweistypen sofern nicht alle Nachweistypen geliefert werden sollen
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: evidenceTypeIds
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+        description: optionale Auswahl der Nachweistypen sofern nicht alle Nachweistypen
+          geliefert werden sollen
       responses:
         '200':
           description: Die Preview-Daten wurden erfolgreich geholt.
@@ -146,7 +219,7 @@ paths:
                     type: array
                     items:
                       type: object
-                    properties:
+                      properties:
                         evidenceTypeId:
                           type: string
                           format: uuid
@@ -156,12 +229,17 @@ paths:
                         renderingTemplate:
                           type: object
                           properties:
-                            type: string
-                            enum: [XSLT, JSON]
-                            description: Format für das Rendering der Nachweidaten in einem menschenlesbaren Format
-                          content:
-                            type: string
-                            description: Inhalt der Vorlage für das Rendering der Nachweisdaten in einem menschenlesbaren Format
+                            type:
+                              type: string
+                              enum:
+                              - XSLT
+                              - JSON
+                          description: Format für das Rendering der Nachweidaten in
+                            einem menschenlesbaren Format
+                        content:
+                          type: string
+                          description: Inhalt der Vorlage für das Rendering der Nachweisdaten
+                            in einem menschenlesbaren Format
         default:
           description: Error
           content:
@@ -169,25 +247,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
-        - bearerAuth: []
+      - bearerAuth: []
   /api/v1/conversations/{conversationId}/consent:
     patch:
-      summary: Zustimmung des Antragsstellenden zur Verwendung von Nachweistypen innerhalb einer bestehenden Konversation speichern, siehe §5 EGovG.
+      summary: Zustimmung des Antragsstellenden zur Verwendung von Nachweistypen innerhalb
+        einer bestehenden Konversation speichern, siehe §5 EGovG.
+      operationId: patchConsent
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Die ID der bestehenden Konversation
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Die ID der bestehenden Konversation
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
               required:
-                - evidenceConsents
+              - evidenceConsents
               properties:
                 evidenceConsents:
                   type: array
@@ -200,36 +280,41 @@ paths:
                         description: UUID des Nachweistyps
                       consentGiven:
                         type: boolean
-                        description: Zustimmung des Nutzers zur Verwendung dieses Nachweises
+                        description: Zustimmung des Nutzers zur Verwendung dieses
+                          Nachweises
                   minItems: 1
       responses:
         '204':
           description: Zustimmung erfolgreich gespeichert
         '400':
-          description: Ungültige Anfrage (z. B. Bezugnahme zu einem evidenceTypeId, der nicht abgefragt werden sollte)
+          description: Ungültige Anfrage (z. B. Bezugnahme zu einem evidenceTypeId,
+            der nicht abgefragt werden sollte)
         '404':
           description: Konversation nicht gefunden
       security:
-        - bearerAuth: []
+      - bearerAuth: []
   /api/v1/conversations/{conversationId}/evidences:
     get:
-      summary: >
-        Liefert Consent-Status für alle angefragte Nachweistypen und Nachweisdaten für Nachweistypen, die der Antragsstellende
-        abrufen möchte.
+      summary: 'Liefert Consent-Status für alle angefragte Nachweistypen und Nachweisdaten
+        für Nachweistypen, die der Antragsstellende abrufen möchte.
+
+        '
+      operationId: getEvidences
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Die ID der bestehenden Konversation
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Die ID der bestehenden Konversation
       responses:
         '200':
-          description: Liste der Nachweistypen mit Consent-Status und Nachweisdaten, sofern der Antragsstellende hierzu ein consent gegeben hat.
+          description: Liste der Nachweistypen mit Consent-Status und Nachweisdaten,
+            sofern der Antragsstellende hierzu ein consent gegeben hat.
           content:
             application/json:
               schema:
-                type: object
                 properties:
                   conversationId:
                     type: string
@@ -260,24 +345,25 @@ paths:
                               format: uri
         '404':
           description: Konversation nicht gefunden
-
   /api/v1/conversations/{conversationId}:
     delete:
       summary: Löscht alle Daten zu einer Konversation
+      operationId: deleteConversation
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Die ID der zu löschenden Konversation
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Die ID der zu löschenden Konversation
       responses:
         '204':
           description: Konversation erfolgreich gelöscht
         '404':
           description: Konversation nicht gefunden
       security:
-        - bearerAuth: []
+      - bearerAuth: []
 components:
   schemas:
     Error:
@@ -287,133 +373,152 @@ components:
           type: string
         errorMessage:
           type: string
-    ConversationStart.RequestedEvidence:
+    RequestedEvidence:
       type: object
       required:
-        - requestedEvidenceIdentifier
-        - requestedEvidenceOrigin
-        - requestedEvidenceTypeDistributionList
+      - requestedEvidenceIdentifier
+      - requestedEvidenceOrigin
+      - requestedEvidenceTypeDistributionList
       properties:
         requestedEvidenceIdentifier:
           type: string
           format: UUID
-          description: Identifikator des Nachweistyps. Dieser kann für nationale Nachweisabrufe im Nachweiskatalog gefunden werden.
-          example: "9151f21f-43ae-43b4-92f3-f4af67cdf544"
+          description: Identifikator des Nachweistyps. Dieser kann für nationale Nachweisabrufe
+            im Nachweiskatalog gefunden werden.
+          example: 9151f21f-43ae-43b4-92f3-f4af67cdf544
         requestedEvidenceOrigin:
           type: string
           enum:
-            - DE  # Deutschland
-            - EU  # EU-Mitgliedstaat, hier nicht Deutschland
-            - AT  # Österreich
-            - BE  # Belgien
-            - BG  # Bulgarien
-            - HR  # Kroatien
-            - CY  # Zypern
-            - CZ  # Tschechien
-            - DK  # Dänemark
-            - EE  # Estland
-            - FI  # Finnland
-            - FR  # Frankreich
-            - GR  # Griechenland
-            - HU  # Ungarn
-            - IE  # Irland
-            - IT  # Italien
-            - LV  # Lettland
-            - LT  # Litauen
-            - LU  # Luxemburg
-            - MT  # Malta
-            - NL  # Niederlande
-            - PL  # Polen
-            - PT  # Portugal
-            - RO  # Rumänien
-            - SK  # Slowakei
-            - SI  # Slowenien
-            - ES  # Spanien
-            - SE  # Schweden
-          description: >
-            Herkunft des nachgefragten Nachweistyps entsprechend ISO 3166-1 Alpha-2 Code in codeliste "urn:xoev-de:kosit:codeliste:country-codes".
-            Nur Länder der Europäischen Union dürfen eingetragen werden. Wenn der Data Consumer Adpater oder die Intermediäre Plattform im Dialog mit
-            dem Antragsstellenden nachträglich die Herkunft ermitteln soll und die Herkunft nicht Deutschland ist, wird der Wert "EU" eingetragen.
+          - DE
+          - EU
+          - AT
+          - BE
+          - BG
+          - HR
+          - CY
+          - CZ
+          - DK
+          - EE
+          - FI
+          - FR
+          - GR
+          - HU
+          - IE
+          - IT
+          - LV
+          - LT
+          - LU
+          - MT
+          - NL
+          - PL
+          - PT
+          - RO
+          - SK
+          - SI
+          - ES
+          - SE
+          description: 'Herkunft des nachgefragten Nachweistyps entsprechend ISO 3166-1
+            Alpha-2 Code in codeliste "urn:xoev-de:kosit:codeliste:country-codes".
+            Nur Länder der Europäischen Union dürfen eingetragen werden. Wenn der
+            Data Consumer Adpater oder die Intermediäre Plattform im Dialog mit dem
+            Antragsstellenden nachträglich die Herkunft ermitteln soll und die Herkunft
+            nicht Deutschland ist, wird der Wert "EU" eingetragen.'
         requestedEvidenceTypeDistributionList:
           type: array
           minItems: 1
           items:
-            $ref: '#/components/schemas/ConversationStart.RequestedEvidence.RequestedEvidenceTypeDistribution'
+            $ref: '#/components/schemas/RequestedEvidenceTypeDistribution'
         rechtsgrundlage:
           type: string
-          description: Hier wird für nationale Abrufe die Rechtsgrundlage für den Nachweisabruf beschrieben
-          example: "§ 9 Handelsgesetzbuch (HGB)"
+          description: Hier wird für nationale Abrufe die Rechtsgrundlage für den
+            Nachweisabruf beschrieben
+          example: § 9 Handelsgesetzbuch (HGB)
         verarbeitungszweck:
           type: string
-          description: >
-            Hier wird für nationale Abrufe der Verarbeitungszweck gemäß noch zu veröffentlichender Code-Liste eingetragen.
-            Für "Onlinedienst (interaktiver) Nachweisabruf ist das "1"
+          description: 'Hier wird für nationale Abrufe der Verarbeitungszweck gemäß
+            noch zu veröffentlichender Code-Liste eingetragen. Für "Onlinedienst (interaktiver)
+            Nachweisabruf ist das "1"'
           example: 1
         jurisdictionParameter:
           type: object
           required:
-            - zuständigkeitswert
-            - zuständigkeitsbestimmung
+          - zuständigkeitswert
+          - zuständigkeitsbestimmung
           properties:
             zuständigkeitswert:
               type: string
-              example: "110009000000"
-              description: >
-                Angabe des Zuständigkeitswerts zur Ermittlung des zuständigen Registers. Im Beispiel: Wert des amtlichen Regionalschlüssels des 
-                Stadtbezirks Steglitz-Zehlendorf
+              example: '110009000000'
+              description: 'Angabe des Zuständigkeitswerts zur Ermittlung des zuständigen
+                Registers. Im Beispiel: Wert des amtlichen Regionalschlüssels des  Stadtbezirks
+                Steglitz-Zehlendorf'
             zuständigkeitsbestimmung:
               type: string
-              example: "ars"
-              description: >
-                Angabe der (Code Liste) zur Ermittlung des zuständigen Registers. Im Beispiel unten erfolgt die Zuständigkeitsbestimmung
-                nach dem Amtlichen Regionalschlüssel.
-    ConversationStart.RequestedEvidence.RequestedEvidenceTypDistribution:
+              example: ars
+              description: 'Angabe der (Code Liste) zur Ermittlung des zuständigen
+                Registers. Im Beispiel unten erfolgt die Zuständigkeitsbestimmung
+                nach dem Amtlichen Regionalschlüssel.'
+    RequestedEvidenceTypeDistribution:
       type: object
       required:
-        - ootsMediaTyp
+      - ootsMediaTyp
       properties:
         ootsMediaType:
           $ref: '#/components/schemas/OotsMediaType'
-          example: "application/xml"
         priority:
           type: integer
           minimum: 1
-          description: Eindeutige Priorität des Nachweisformats als positive ganze Zahl.
+          description: Eindeutige Priorität des Nachweisformats als positive ganze
+            Zahl.
         evidenceSchema:
           type: string
           format: uri
-          description: >
-            Verweis auf ein Schema in einer definierten Version. Bei Nachweisanfragen aus dem EU-Ausland muss der
-            Wert dem Muster 'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
-            example: "https://www.xrepository.de/api/xrepository/urn:xoev-de:blk-ag-it-standards:standard:xjustiz_3.6.2:xmlschema"
+          description: 'Verweis auf ein Schema in einer definierten Version. Bei Nachweisanfragen
+            aus dem EU-Ausland muss der Wert dem Muster ''https://sr.oots.tech.ec.europa.eu/datamodels/.*''
+            entsprechen. example: "https://www.xrepository.de/api/xrepository/urn:xoev-de:blk-ag-it-standards:standard:xjustiz_3.6.2:xmlschema"'
         transformationSchema:
           type: string
           format: uri
-          description: >
-            Verweis auf ein Schema, dass ein Subset der geforderten Daten definiert. Bei Nachweisanfragen aus dem EU-Ausland muss der
-            Wert dem Muster 'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
+          description: 'Verweis auf ein Schema, dass ein Subset der geforderten Daten
+            definiert. Bei Nachweisanfragen aus dem EU-Ausland muss der Wert dem Muster
+            ''https://sr.oots.tech.ec.europa.eu/datamodels/.*'' entsprechen.'
     IdentifierPerson:
       type: object
       required:
-        - person
+      - personType
+      - person
       properties:
+        personType:
+          type: string
+          enum: [naturalPerson, legalPerson]
+          description: 'Gibt an, ob es sich um eine natürliche oder juristische Person handelt.'
         person:
           oneOf:
-            - $ref: '#/components/schemas/NaturalPerson'
-            - $ref: '#/components/schemas/LegalPerson'
+          - $ref: '#/components/schemas/NaturalPerson'
+          - $ref: '#/components/schemas/LegalPerson'
           discriminator:
             propertyName: type
             mapping:
               naturalPerson: '#/components/schemas/NaturalPerson'
               legalPerson: '#/components/schemas/LegalPerson'
-            description: Entweder eine natürliche oder eine juristische Person – genau eine muss angegeben werden.
+              description: Entweder eine natürliche oder eine juristische Person –
+                genau eine muss angegeben werden.
+            example:
+              naturalPersonExample:
+                summary: Beispiel für natürliche Person
+                value:
+                  type: naturalPerson
+                  person:
+                    givenName: Max
+                    familyName: Mustermann
+                    dateOfBirth: '1990-01-01'
+                    levelOfAssurance: High
     NaturalPerson:
       type: object
       required:
-        - dateOfBirth
-        - familyName
-        - givenName
-        - levelOfAssurance
+      - dateOfBirth
+      - familyName
+      - givenName
+      - levelOfAssurance
       properties:
         dateOfBirth:
           type: string
@@ -439,9 +544,9 @@ components:
     LegalPerson:
       type: object
       required:
-        - legalName
-        - levelOfAssurance
-        - address
+      - legalName
+      - levelOfAssurance
+      - address
       properties:
         legalName:
           type: string
@@ -452,11 +557,12 @@ components:
         legalPersonEIDASIdentifier:
           type: string
           description: eIDAS-konformer Identifier
-          example: "ES/AT/02635542Y"
+          example: ES/AT/02635542Y
         legalPersonIdentifier:
           type: string
-          description: Hier erfolgt die Angabe des EUID entsprechend Durchführungsverordnung (EU) 2020/2244 der Kommission vom 17. Dezember 2020
-          example: "DE.HRB.123456"
+          description: 'Hier erfolgt die Angabe des EUID entsprechend Durchführungsverordnung
+            (EU) 2020/2244 der Kommission vom 17. Dezember 2020'
+          example: DE.HRB.123456
         sectorSpecificAttributeList:
           type: array
           items:
@@ -464,37 +570,39 @@ components:
     Address:
       type: object
       required:
-        - fullAddress
-        - thoroughfare
-        - locatorDesignator
-        - country
-        - postCode
-        - postCityName
+      - fullAddress
+      - thoroughfare
+      - locatorDesignator
+      - country
+      - postCode
+      - postCityName
       properties:
         fullAddress:
-        type: string
-        description: Die vollständige Adresse (Strasse, Postleitzahl, Stadt/Gemeinde, Land)
-      thoroughfare:
-        type: string
-        description: Die Straße ohne Nummer
-      locatorDesignator:
-        type: string
-        description: Die Nummerangabe als Ergänzung zur Straßenangabe
-      country:
-        type: string
-        description: Das Land entsprechend ISO 3166-1 Alpha-2 Code in codeliste "urn:xoev-de:kosit:codeliste:country-codes"
-      postCode:
-        type: string
-        description: Postleitzahl
-      postCityName:
-        type: string
-        description: Stadt oder Gemeinde
+          type: string
+          description: Die vollständige Adresse (Strasse, Postleitzahl, Stadt/Gemeinde,
+            Land)
+        thoroughfare:
+          type: string
+          description: Die Straße ohne Nummer
+        locatorDesignator:
+          type: string
+          description: Die Nummerangabe als Ergänzung zur Straßenangabe
+        country:
+          type: string
+          description: Das Land entsprechend ISO 3166-1 Alpha-2 Code in codeliste
+            "urn:xoev-de:kosit:codeliste:country-codes"
+        postCode:
+          type: string
+          description: Postleitzahl
+        postCityName:
+          type: string
+          description: Stadt oder Gemeinde
     SectorSpecificAttribute:
       type: object
       required:
-        - attributeName
-        - attributeURI
-        - attributeValue
+      - attributeName
+      - attributeURI
+      - attributeValue
       properties:
         attributeName:
           type: string
@@ -503,213 +611,23 @@ components:
           format: uri
         attributeValue:
           type: string
-    AssuranceLevel:
+    LevelOfAssurance:
       type: string
       enum:
-        - Low
-        - Substantial
-        - High
+      - Low
+      - Substantial
+      - High
       description: Das Vertrauensniveau gemäß eIDAS oder ähnlichen Standards.
     OotsMediaType:
       type: string
       enum:
-        - image/jpeg
-        - image/jpg
-        - image/png
-        - image/svg+xml
-        - application/pdf
-        - application/json
-        - application/xml
-
-
-
-    ConversationStart.EvidenceSubject:
-      type: object
-      properties:
-        legalPerson:
-          $ref: '#/components/schemas/ConversationStart.LegalPerson'
-        naturalPerson:
-          $ref: '#/components/schemas/ConversationStart.NaturalPerson'
-        evidenceRequests:
-          type: array
-          items:
-            type: object
-            required:
-              - evidenceRequestId
-              - evidenceType
-              - evidenceTitle
-              - mediaTypes
-            properties:
-              evidenceRequestId:
-                type: string
-                format: uuid
-              evidenceType:
-                type: string
-              evidenceTitle:
-                type: string
-                example: 'Handelsregisterauszug'
-              mediaTypes:
-                type: array
-                items:
-                  type: string
-              jurisdictionParameters:
-                type: array
-                items:
-                  type: object
-                  required:
-                    - key
-                    - value
-                  properties:
-                    key:
-                      type: string
-                    value:
-                      type: string
-                description: This data will be used for fetching the responsible service when there are decentralized registers.
-              metadata:
-                type: array
-                items:
-                  type: object
-                  required:
-                    - label
-                    - value
-                  properties:
-                    label:
-                      type: string
-                    value:
-                      type: string
-                description: This data is used by the frontend to display information about the evidence that is requested.
-    ConversationGet.NaturalPerson:
-      type: object
-      required:
-      - dateOfBirth
-      - familyName
-      - givenName
-      - address
-      properties:
-        dateOfBirth:
-          type: string
-          format: date
-        familyName:
-          type: string
-        givenName:
-          type: string
-        address:
-          $ref: '#/components/schemas/ConversationGet.Address'
-    ConversationGet.LegalPerson:
-      type: object
-      required:
-      - legalName
-      - address
-      properties:
-        beWiNr:
-          type: string
-          nullable: true
-        legalName:
-          type: string
-        address:
-          $ref: '#/components/schemas/ConversationGet.Address'
-    ConversationGet.EvidenceSubject:
-      type: object
-      properties:
-        legalPerson:
-          $ref: '#/components/schemas/ConversationGet.LegalPerson'
-        naturalPerson:
-          $ref: '#/components/schemas/ConversationGet.NaturalPerson'
-        evidenceRequests:
-          type: array
-          items:
-            type: object
-            required:
-              - evidenceRequestId
-              - evidenceType
-              - evidenceTitle
-              - mediaTypes
-              - consented
-            properties:
-              evidenceRequestId:
-                type: string
-                format: uuid
-              evidenceTitle:
-                type: string
-                example: 'Handelsregisterauszug'
-              jurisdictionParameters:
-                type: array
-                items:
-                  type: object
-                  required:
-                    - key
-                    - value
-                  properties:
-                    key:
-                      type: string
-                    value:
-                      type: string
-              metadata:
-                type: array
-                items:
-                  type: object
-                  required:
-                    - label
-                    - value
-                  properties:
-                    label:
-                      type: string
-                    value:
-                      type: string
-              cancelled:
-                type: boolean
-              evidences:
-                type: array
-                items:
-                  $ref: '#/components/schemas/EvidencePreview'
-              consented:
-                type: boolean
-    Evidence:
-      type: object
-      properties:
-        title:
-          type: string
-        issuingDate:
-          type: string
-          format: date-time
-        validityPeriod:
-          type: object
-          properties:
-            validityFrom:
-              type: string
-              format: date-time
-            validityTo:
-              type: string
-              format: date-time
-        mediaType:
-          type: string
-        conformsTo:
-          type: string
-        transformation:
-          type: string
-        issuingAuthority:
-          type: object
-          properties:
-            id:
-              type: string
-            name:
-              type: string
-        language:
-          type: string
-    EvidencePreview:
-      allOf:
-        - $ref: "#/components/schemas/Evidence"
-        - type: object
-          properties:
-            preview:
-              type: string
-    EvidenceData:
-      allOf:
-        - $ref: "#/components/schemas/Evidence"
-        - type: object
-          properties:
-            data:
-              type: string
+      - image/jpeg
+      - image/jpg
+      - image/png
+      - image/svg+xml
+      - application/pdf
+      - application/json
+      - application/xml
   securitySchemes:
     bearerAuth:
       type: http
