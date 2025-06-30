@@ -1,0 +1,591 @@
+openapi: 3.0.3
+info:
+  title: OpenAPI 3.0
+  version: '0.5'
+paths:
+  /api/v1/conversation/start:
+    post:
+      tags:
+        - Initiierung Nachweisabruf
+      summary: >
+        Initiierung eines Nachweisabrufs einen oder mehrere Nachweise durch
+        einen Data Consumer (DC). Anlage einer "conversation" mit Information über
+        alle abzurufende Nachweise und Information über den Antragsstellenden (Bürger
+        und Unternehmen).
+      description: >
+        Data Consumer (DC) kann mit Hilfe des End Points eine oder mehrere Nachweisabrufe initiieren.
+        Die Anfrage erfolgt über interne Netze. Der End Point ist nicht über Internet aufrufbar.
+      operationId: ConversationStart
+      requestBody:
+        description: >
+          Initiierung eines Nachweisabrufs einer oder mehrere Nachweise
+          durch einen Data Consumer (DC). Als Antwort erhält der Data Consumer ein
+          JWT mit einem eingebetteten conversationId auf deren Grundlage er zu einem späteren Zeitpunkt die Nachweise
+          abrufen kann.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - applicationTitle
+                - applicationSubject
+                - componentId
+                - backToEvidenceRequesterURL
+                - personsAndRequestedEvidences
+                - dataConsumerSecret
+              properties:
+                applicationTitle:
+                  type: string
+                  description: 'Name der Verwaltungsleistung. Wird bei der Bedienoberfläche des Data Consumer Adapters angezeigt.'
+                  example: 'Gewerbeanmeldung'
+                applicationDescription:
+                  type: string
+                  example: 'Einrichtung Zweigniederlassung bei der Firma Schröder GmbH'
+                  description: >
+                    Hier kann der Data Consumer eine Verwaltungsleistung weiter konkretisieren. Der Text wird bei der Bedienoberfläche
+                    des Data Consumer Adapters angezeigt.
+                applictionApplicant:
+                  type: string
+                  description: > 
+                    Hier wird der Name der antragsstellenden natürlichen Person aufgeführt (entweder Bürger, oder handelnde Person des Unternehmens).
+                    Dieses Feld wid ausschließlich genutzt, um es bei der Bedienoberfläche des Data Consumer Adapters anzuzeigen.
+                  example: Erika Mustermann
+                componentId:
+                  type: string
+                  format: uuid
+                  description: >
+                    Die componentId ist NOOTS-intern erforderlich. Mithilfe der componentId kann beispielsweise ermittelt werden, wer beim Data Consumer
+                    die Fachverantwortliche Stelle und die Betriebsverantwortliche Stelle ist. Der Data Consumer muss diesen Wert daher kennen, bevor er 
+                    einen Nachweisabruf durchführen kann.
+                  example: '49a8c0b0-cd8b-4b59-a861-a732e64bf51f'
+                backToEvidenceRequesterURL:
+                  type: string
+                  format: url
+                  description: >
+                    Nachdem der Data Consumer Adapter alle angefragten Nachweise abgeholt hat, nutzt der Data Consumer Adapter
+                    diesen url, um den Nutzer zurück zur Bedienoberfläche des Data Consumers zu führen.
+                  example: 'https://verwaltung-online.frankfurt.de/civ.public/form.html?token=eyJhb...'
+                personsAndRequestedEvidences:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/PersonsAndRequestedEvidences"
+                  description: 'Hier werden alle angefragten Nachweise eingetragen. Die Nachweise werden zu der antragsstellenden Person (Bürger und Unternehmen) zugeordnet.'
+                language:
+                  type: string
+                  description: 'Sprache entsprechend Codeliste: urn:xoev-de:xnachweis:codeliste:sprachen-iso-639-1. Deutsche Sprache ist "de"'
+                  example: de
+                dataConsumerSecret:
+                  type: string
+                  description: 'Hier wird ein Passwort des Data Consumers angegeben.'
+                  example: '3fa85f64-5717-4562-b3fc-2c963f66afa6'
+        required: true
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tokenJwt:
+                    type: string
+                  refreshTokenJwt:
+                    type: string
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/conversation/refresh:
+    post:
+      tags:
+        - Tokenaktualisierung
+      summary: Dieser Endpunkt wird verwendet, wenn das ausgestellte JWT nicht mehr gültig ist.
+      description: Zur Aktualisierung des JWT wird ein refreshToken als Eingabe verwendet. Die Anfrage erfolgt über das interne Netz, das heißt, der Endpunkt ist nicht über das Internet aufrufbar
+      operationId: refreshToken
+      requestBody:
+        description: Aktualisiertes JWT anfordern
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  description: 'Der refresh Token wurde bei der Nutzung des Endpunkts Conversation/Start ausgestellt.'
+        required: true
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tokenJwt:
+                    type: string
+                    description: JWT mit conversationId.
+                    example: >
+                      eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.
+                      eyJjb252ZXJzYXRpb25JRCI6ICJmMTk0MzYxZi05ZGJjLTRhZTMtYjcyMS03ZWY5MmE0NTI0YzgiLCAiaWF0IjogMTc1MTI3MTQ3NywgImV4cCI6IDE3NTEyNzE1Mzd9.
+                      a-FdQaLCKA2IYePX6KVobS997X9SG93hrtpMEb02iKA
+                  refreshTokenJwt:
+                    type: string
+                    description: JWT - kann genutzt werden, um einen neuen Token auszustellen. Der JWT kann nur über interne Netze verwendet werden.
+                    example: >
+                      eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.
+                      eyJjb252ZXJzYXRpb25JRCI6ICJmMTk0MzYxZi05ZGJjLTRhZTMtYjcyMS03ZWY5MmE0NTI0YzgiLCAidHlwZSI6ICJyZWZyZXNoIiwgImlhdCI6IDE3NTEyNzE0NzcsICJleHAiOiAxNzUxMjczMjc3fQ.
+                      4cCFVf5n_UoEm52B89ZrCMghnm2wPCEgA-mokdIdLkI
+
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/conversation/evidences:
+    get:
+      tags:
+        - Nachweisabholung nach Preview
+      summary: Der Data Consumer nutzt diesen Endpunkt, nachdem der Data-Consumer-Adapter den Nachweisabruf abgeschlossen und alle Nachweise abgeholt hat, die von der antragsstellenden Person verwendet werden sollen.
+      description: Die Anfrage erfolgt über das interne Netz, das heißt, der Endpunkt ist nicht über das Internet aufrufbar.
+      operationId: getEvidences
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  evidences:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - evidenceRequestId
+                        - status
+                      properties:
+                        evidenceTypeId:
+                          type: string
+                          format: uuid
+                          description: >
+                            An dieser Stelle wird die ID des angeforderten Nachweistyps übergeben. Sie dient dazu, die Anfrage eindeutig dem entsprechenden Nachweistyp zuzuordnen,
+                            wie er zuvor im Endpunkt Conversation/Start angegeben wurde.
+                        status:
+                          type: string
+                          enum: ['success', 'unavailable', 'failure', 'noconsent']
+                          description: >
+                            Gibt den Status einer Nachweisanfrage zurück.
+                            Wenn der Status „unavailable“ ist, kann der Nachweis zu einem späteren Zeitpunkt abgeholt werden – siehe responseAvailableDateTime.
+                            Bei „noconsent“ hat die anfragende Person entschieden, den Nachweis nicht abzurufen. In diesem Fall wird kein Nachweis an den Data Consumer mitgeliefert.
+                          example: 'success'
+                        errorEvidence:
+                          $ref: "#/components/schemas/Error"
+                          description: Beschreibung eines Fehlers direkt zugeordnet zu einem bestimmten angefragten Nachweistyp.
+                        evidencesData:
+                          type: array
+                          items:
+                            $ref: "#/components/schemas/DeliveredEvidenceData"
+                          description: >
+                            Hier werden ein oder mehrere EvidenceData-Objekte für eine Nachweisanfrage abgerufen.
+                            Grundsätzlich ist es möglich, dass zu einem Nachweistyp mehrere Einzelnachweise geliefert werden – zum Beispiel strukturierte Passinformationen und ein Passfoto als Bild.
+                            In der Regel wird jedoch pro Nachweistyp genau ein EvidenceData-Objekt zurückgegeben.
+                        responseAvailableDateTime:
+                          type: string
+                          format: date-time
+                          description: Wenn ein Nachweis nicht sofort abgerufen werden kann (Status „unavailable“, siehe oben), kann hier eingesehen werden, ab wann der Nachweis zur Abholung bereitsteht.
+                          example: '2025-06-25T18:40:28Z'
+                    description: Hier werden alle angeforderten Nachweise zurückgegeben. Sollten einzelne Nachweise nicht geliefert werden können, kann der Grund dafür im jeweiligen status eingesehen werden.
+                  errorEvidences:
+                    $ref: "#/components/schemas/Error"
+                    description: Gibt einen allgemeinen Fehlerzustand an, der alle Nachweisanfragen betrifft und deren Abruf verhindert.
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+        - bearerAuth: []
+  /v1/request:
+    post:
+      tags:
+        - Initiierung Nachweisabruf
+      summary: Über den Endpunkt erhält der Data Consumer Zugriff auf das Frontend des Data-Consumer-Adapters.
+      description: Der Endpunkt wird aufgerufen, nachdem der Data-Consumer-Adapter (DCA) erfolgreich mit "conversation/start" den Nachweisabruf initiiert hat.
+      operationId: dcaFrontend
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - tokenJwt
+                - refreshTokenJwt
+              properties:
+                tokenJwt:
+                  type: string
+                refreshTokenJwt:
+                  type: string
+        required: true
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+      description: Fehler können sowohl übergreifend über alle Nachweisanfragen als auch über einzelne Nachweisanfragen geliefert werden.
+    Address:
+      type: object
+      required:
+        - fullAddress
+        - thoroughfare
+        - locatorDesignator
+        - adminUnitLevel1
+        - postCode
+        - cityName
+      properties:
+        fullAddress:
+          type: string
+          example: 'Sonnenstraße 14A, 21614 Buxtehude'
+        thoroughfare:
+          type: string
+          description: die Straße ohne Angabe einer Nummer
+          example: 'Sonnenstraße'
+        locatorDesignator:
+          type: string
+          description: die Nummer als Ergänzung zu einer Straßenangabe
+          example: '14A'
+        Land:
+          type: string
+          description: Angabe des Landes gemäß ISO Alpha 2 code
+          example: 'DE'
+        adminUnitLevel2:
+          type: string
+          description: >
+            Der Name einer sekundären Ebene/Region der Adresse, in der Regel ein Bezirk, ein Bundesland oder ein anderes
+            Gebiet, das in der Regel mehrere Ortschaften umfasst. In den meisten Fällen kann hierbei ein Code aus der
+            Codeliste urn:xoev-de:xnachweis:codeliste:nuts verwendet werden. Im Beispiel unten steht 'DE26' für Unterfranken
+          example: 'DE26'
+        postCode:
+          type: string
+          description: Postleitzahl
+          example: '21614'
+        cityName:
+          type: string
+          description: Die Stadt oder Gemeinde
+          example: 'Buxtehude'
+    NaturalPerson:
+      type: object
+      required:
+        - levelOfAssurance
+        - dateOfBirth
+        - familyName
+        - givenName
+      properties:
+        iDNr:
+          type: string
+          nullable: true
+          description: >
+            Die IDnr, siehe §4 IDNrG. Welche Identifier für einen konkreten
+            Nachweisabruf zu nutzen ist, ist im Nachweiskatalog einzusehen.
+        sectorSpecificAttributes:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/SectorSpecificAttribute"
+          description: >
+            Hier werden sektorspezifische Attribute für eine Identifikation einer natürlichen Person aufgeführt, z. B. Matrikelnummer.
+            Welche Attribute für nationale Abrufe eines Nachweistyps notwendig sind, können im Nachweiskatalog eingesehen werden.
+        levelOfAssurance:
+          type: string
+          enum: ["low", "substantial", "high"]
+        placeOfBirth:
+          type: string
+          example: 'Wuppertal'
+        gender:
+          type: string
+          description: Angabe des Geschlechts. Es wird gerade geklärt welche Werte hierfür vorgesehen sind. Aus eIDAS-fähigen Authentifizierungsverfahren bekommt am "Male", "Female", "Unspecified" als Antwort zurück.
+          example: 'Male'
+        dateOfBirth:
+          type: string
+          format: date
+          description: Geburtsdatum
+          example: "1999-12-02"
+        familyName:
+          type: string
+          description: Nachname
+          example: 'Mustermann'
+        givenName:
+          type: string
+          description: Vorname
+          example: 'Erika'
+        address:
+          $ref: "#/components/schemas/Address"
+          description: Die Wohnadresse für natürliche Personen und die registrierte Adresse für Unternehmen
+        nationality:
+          type: string
+          description: 'Staatsangehörigkeit des Antragsstellenden entsprechend Standard ISO 3166 ALPHA-2 https://www.xrepository.de/details/urn:xoev-de:kosit:codeliste:country-codes.'
+          example: 'DE'
+    LegalPerson:
+      type: object
+      required:
+        - legalName
+        - legalPersonIdentifierEAS
+        - legalPersonIdentifierEIDAS
+        - levelOfAssurance
+      properties:
+        legalName:
+          type: string
+          description: Name des Unternehmens
+          example: 'Schröder GmbH'
+        beWiNr:
+          type: string
+          description: >
+            Die Bundeseinheitliche Wirtschaftsnummer für Unternehmen, siehe §2 UBRegG. Welche Identifier für einen konkreten
+            Nachweisabruf zu nutzen ist, ist im Nachweiskatalog einzusehen.
+          example: '12345678901'
+        legalPersonIdentifierEAS:
+          type: array
+          nullable: true
+          description: 'Eine Auflistung von Identifikatoren eines Unternehmens mit Electronic Adress Values entsprechend eines Electronic Access Schemas.'
+          items:
+            type: object
+            properties:
+              identifier:
+                type: string
+                nullable: true
+                description: >
+                  Electronic Address Value eines Unternehmens entsprechend eines Electronic Address Schema (EAS).
+                  Am Beispiel unten wird eine German VAT Number verwendet.
+                example: 'DE123456789'
+              schemeEAS:
+                type: string
+                nullable: true
+                description: >
+                  Schema EAS identifier URN des Unternehmens. Als default value wird urn:cef.eu:names:identifier:EAS:[Code] verwendet.
+                  Sollte kein pasender Schema vorhanden sein, kann die unregistrierte option urn:oasis:names:tc:ebcore:partyid-type:unregistered:[Code]
+                  verwendet werden, zusammen mit einem ISO 3166-1 alpha-2 country code. Welches Schema für einen konkreten Nachweistyp zu nutzen ist, kann im 
+                  Nachweiskatalog entnommen werden. Beispielsweise bedeutet das Schema 9930 (German VAT Number).
+                example: 'urn:cef.eu:names:identifier:EAS:9930'
+        legalPersonIdentifierEIDAS:
+          type: string
+          description: Identifier aus einem eIDAS-notifizierten Authentifizierungsmittel
+          example: 'ES/AT/02635542Y'
+        sectorSpecificAttributes:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/SectorSpecificAttribute"
+          description: >
+            Hier werden sektorspezifische Attribute für eine Identifikation einer legal Person aufgeführt. Ob für ein Nachweistyp sektorspezifische Attribute zu
+            nutzen sind, können im Nachweiskatalog eingesehen werden.
+        levelOfAssurance:
+          type: string
+          enum: ["low", "substantial", "high"]
+        registeredAddress:
+          $ref: "#/components/schemas/Address"
+    PersonsAndRequestedEvidences:
+      type: object
+      properties:
+        legalPerson:
+          $ref: "#/components/schemas/LegalPerson"
+        naturalPerson:
+          $ref: "#/components/schemas/NaturalPerson"
+        requestedEvidences:
+          type: array
+          items:
+            type: object
+            required:
+              - requestedEvidenceTypeId
+              - requestedEvidenceTypeFormats
+              - includeHumanReadable
+            properties:
+              requestedEvidenceTypeId:
+                type: string
+                format: uuid
+                description: >
+                  Id des angefragten Nachweises. Wird genutzt, um Anfragen an RDN zu stellen und z. B. End Point des
+                  zuständigen Registers zu ermitteln (ServiceId). Ist für nationale Nachweisabrufe verpflichtend.
+              requestedEvidenceTypeFormats:
+                type: array
+                minItems: 1
+                items:
+                  $ref: '#/components/schemas/RequestedEvidenceTypeFormat'
+                description: >
+                  Beschreibt für ein Nachweistyp welche MediaTypes (PDF, XML und Nachweisschema z. B. XJustiz Version 3.6.2) der
+                  Data Consumer in der Lage ist zu verarbeiten, in einer Reihenfolge der Priorität.
+              legalBasis:
+                type: string
+                description: >
+                  Beschreibt für nationale Abrufe die Rechtsgrundlage für den Nachweisabruf
+                example: '§ 9 Handelsgesetzbuch (HGB)'
+              purposeOfUse:
+                type: string
+                description: >
+                  Hier wird für nationale Abrufe der Verarbeitungszweck gemäß
+                  noch zu veröffentlichender Code-Liste eingetragen. Für "Onlinedienst (interaktiver)
+                  Nachweisabruf ist der Wert aktuell "1 - Onlinedienst"
+                example: '1 - Onlinedienst'
+              jurisdictionParameter:
+                type: object
+                required:
+                - zuständigkeitswert
+                - zuständigkeitsbestimmung
+                properties:
+                  jurisdictionValue:
+                    type: string
+                    description: >
+                      Angabe des Zuständigkeitswerts zur Ermittlung des zuständigen
+                      Registers. Im Beispiel: Wert des amtlichen Regionalschlüssels des Stadtbezirks
+                      Steglitz-Zehlendorf
+                    example: '110009000000'
+                  jurisdictionType:
+                    type: string
+                    example: 'ars'
+                    description: >
+                      Angabe der (Code Liste) zur Ermittlung des zuständigen
+                      Registers. Im Beispiel erfolgt die Zuständigkeitsbestimmung
+                      nach dem Amtlichen Regionalschlüssel.
+              metadataForDCAFrontend:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - label
+                    - value
+                  properties:
+                    label:
+                      type: string
+                    value:
+                      type: string
+                description: >
+                  Hier hat der Data Consumer die Möglichkeit ergänzende Informationen zum angefragten NachweisTyp zu liefern, das angefragt werden soll.
+                  Die Informationen wird pro Nachweistyp auf der Bedienoberfläche des DCA angezeigt.
+              includeHumanReadablePdf:
+                type: boolean
+                description: >
+                  Sollte der Data Consumer, ergänzend zu strukturierten Daten ein menschenlesbares pdf für die weitere
+                  Antragsstelung kann das hier vermerkt werden.
+          description: >
+            Hier gibt der Antragsstellende ein welche Nachweise er benötigt und in welchem Format und Struktur (z. B. XÖV-Standard und Version) er Nachweise verarbeiten kann.
+    SectorSpecificAttribute:
+      type: object
+      required:
+        - attributeName
+        - attributeUri
+        - attributeValue
+      properties:
+        attributeName:
+          type: string
+        attributeUri:
+          type: string
+          format: url
+        attributeValue:
+          type: string
+    RequestedEvidenceTypeFormat:
+      type: object
+      required:
+        - mediaType
+      properties:
+        mediaType:
+          $ref: "#/components/schemas/MediaType"
+        priority:
+          type: integer
+          minimum: 1
+          description: 'Eindeutige Priorität des Nachweisformats als positive ganze Zahl.'
+        evidenceSchema:
+          type: string
+          format: uri
+          description: >
+            Verweis auf ein Schema in einer definierten Version. Bei Nachweisanfragen
+            aus dem EU-Ausland muss der Wert dem Muster ''https://sr.oots.tech.ec.europa.eu/datamodels/.*'
+            entsprechen.
+          example: "https://www.xrepository.de/api/xrepository/urn:xoev-de:blk-ag-it-standards:standard:xjustiz_3.6.2:xmlschema"
+        transformationSchema:
+          type: string
+          format: uri
+          description: >
+            Verweis auf ein Schema, dass ein Subset der geforderten Daten
+            definiert. Bei Nachweisanfragen aus dem EU-Ausland muss der Wert dem Muster
+            'https://sr.oots.tech.ec.europa.eu/datamodels/.*' entsprechen.
+
+    MediaType:
+      type: string
+      enum:
+        - image/jpeg
+        - image/jpg
+        - image/png
+        - image/svg+xml
+        - application/pdf
+        - application/json
+        - application/xml
+    DeliveredEvidence:
+      type: object
+      properties:
+        title:
+          type: string
+        issuingDate:
+          type: string
+          format: date-time
+        validityPeriod:
+          type: object
+          properties:
+            validityFrom:
+              type: string
+              format: date-time
+            validityTo:
+              type: string
+              format: date-time
+        mediaType:
+          $ref: "#/components/schemas/MediaType"
+        conformsTo:
+          type: string
+        transformation:
+          type: string
+        issuingAuthority:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        consentGiven:
+          type: object
+          required:
+            - consentGivenValue
+            - timeStamp
+          properties:
+            consentGivenValue:
+              type: string
+              enum: ['Yes', 'No']
+            timeStamp:
+              type: string
+              format: date-time
+        language:
+          type: string
+    DeliveredEvidenceData:
+      allOf:
+        - $ref: "#/components/schemas/DeliveredEvidence"
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              description: >
+                Die tatsächliche entschlüssselte und ggf. signierte Nachricht, entsprechend Format, das in MediaType definiert wurde, z. B. Application/PDF, Application/XML etc.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
